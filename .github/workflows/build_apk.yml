@@ -1,0 +1,41 @@
+name: Compilar APK Aura Finance
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Gerar APK Android
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar codigo do repositorio
+        uses: actions/checkout@v4
+
+      - name: Instalar Java (JDK 17)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Instalar Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Instalar dependencias do Flutter
+        working-directory: ./aura_finance_mobile
+        run: flutter pub get
+
+      - name: Compilar APK Release
+        working-directory: ./aura_finance_mobile
+        run: flutter build apk --release
+
+      - name: Salvar APK para Download
+        uses: actions/upload-artifact@v4
+        with:
+          name: aura-finance-android-apk
+          path: aura_finance_mobile/build/app/outputs/flutter-apk/app-release.apk

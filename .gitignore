@@ -1,0 +1,15 @@
+# Flutter / Dart
+aura_finance_mobile/.dart_tool/
+aura_finance_mobile/.flutter-plugins
+aura_finance_mobile/.flutter-plugins-dependencies
+aura_finance_mobile/.packages
+aura_finance_mobile/build/
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+
+# OS Files
+.DS_Store
+Thumbs.db
