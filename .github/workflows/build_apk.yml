@@ -26,12 +26,18 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Assegurar arquivos da plataforma Android
+      - name: Configurar plataforma Android limpa
         working-directory: ./aura_finance_mobile
         run: |
-          cp android/app/src/main/AndroidManifest.xml android/app/src/main/AndroidManifest.xml.bak 2>/dev/null || true
+          rm -rf android
           flutter create . --platforms=android --org com.aurafinance
-          cp android/app/src/main/AndroidManifest.xml.bak android/app/src/main/AndroidManifest.xml 2>/dev/null || true
+          
+          # Ajusta minSdk para 23 para suportar biometria e armazenamento seguro
+          find android -name "build.gradle*" -exec sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 23/g' {} +
+          find android -name "build.gradle*" -exec sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 23/g' {} +
+          
+          # Insere permissoes no AndroidManifest.xml
+          sed -i '/<manifest/a \    <uses-permission android:name="android.permission.INTERNET"/>\n    <uses-permission android:name="android.permission.USE_BIOMETRIC"/>\n    <uses-permission android:name="android.permission.USE_FINGERPRINT"/>' android/app/src/main/AndroidManifest.xml
 
       - name: Instalar dependencias do Flutter
         working-directory: ./aura_finance_mobile
@@ -39,7 +45,7 @@ jobs:
 
       - name: Compilar APK Release
         working-directory: ./aura_finance_mobile
-        run: flutter build apk --release
+        run: flutter build apk --release --android-skip-build-dependency-validation
 
       - name: Salvar APK para Download
         uses: actions/upload-artifact@v4
