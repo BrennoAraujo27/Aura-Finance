@@ -26,6 +26,13 @@ jobs:
           channel: 'stable'
           cache: true
 
+      - name: Assegurar arquivos da plataforma Android
+        working-directory: ./aura_finance_mobile
+        run: |
+          cp android/app/src/main/AndroidManifest.xml android/app/src/main/AndroidManifest.xml.bak 2>/dev/null || true
+          flutter create . --platforms=android --org com.aurafinance
+          cp android/app/src/main/AndroidManifest.xml.bak android/app/src/main/AndroidManifest.xml 2>/dev/null || true
+
       - name: Instalar dependencias do Flutter
         working-directory: ./aura_finance_mobile
         run: flutter pub get
