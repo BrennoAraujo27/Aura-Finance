@@ -132,7 +132,7 @@ class FinanceRepository extends ChangeNotifier {
       frequency: 'Diário útil (22x/mês)',
       costMonthly: 264.00,
       costAnnual: 3168.00,
-      note: 'Média de R$ 12,00 por dia útil',
+      note: 'Média de R\$ 12,00 por dia útil',
     ),
     LeakModel(
       id: 'leak_3',

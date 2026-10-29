@@ -131,7 +131,7 @@ class GoalsTab extends StatelessWidget {
                     height: 36,
                     child: OutlinedButton(
                       style: OutlinedButton.styleFrom(
-                        side: Border.all(color: AppTheme.accentEmerald.withOpacity(0.4)),
+                        side: BorderSide(color: AppTheme.accentEmerald.withOpacity(0.4)),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
                       onPressed: () => _showDepositDialog(context, goal.id, goal.title),

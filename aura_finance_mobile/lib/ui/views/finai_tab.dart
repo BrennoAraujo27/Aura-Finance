@@ -192,7 +192,7 @@ class _FinAiTabState extends State<FinAiTab> {
                                   children: [
                                     const Text('Novo Diário', style: TextStyle(fontSize: 10, color: AppTheme.textMuted)),
                                     const SizedBox(height: 2),
-                                    Text(currency.format(_result!.newSafeDaily), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textCyan ?? AppTheme.accentCyan)),
+                                    Text(currency.format(_result!.newSafeDaily), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.accentCyan)),
                                   ],
                                 ),
                               ),
