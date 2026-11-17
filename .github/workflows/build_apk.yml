@@ -39,6 +39,20 @@ jobs:
           find android -name "build.gradle*" -exec sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 21/g' {} +
           find android -name "build.gradle*" -exec sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/g' {} +
 
+          # Desabilita lintVital via Python (evita crash do Kotlin Lint no webview_flutter_android)
+          python3 -c "
+          import os, glob
+          lint_block_groovy = '\n    lintOptions {\n        checkReleaseBuilds false\n        abortOnError false\n    }'
+          lint_block_kts = '\n    lint {\n        checkReleaseBuilds = false\n        abortOnError = false\n    }'
+          for f in glob.glob('android/**/*.gradle', recursive=True) + glob.glob('android/**/*.gradle.kts', recursive=True):
+              content = open(f).read()
+              if 'android {' in content and 'lintOptions' not in content and 'lint {' not in content:
+                  block = lint_block_kts if f.endswith('.kts') else lint_block_groovy
+                  content = content.replace('android {', 'android {' + block, 1)
+                  open(f, 'w').write(content)
+                  print(f'Patched lint in: {f}')
+          "
+
           # Permissão de Internet (obrigatória para o WebView carregar o app)
           sed -i 's/<application/<uses-permission android:name="android.permission.INTERNET"\/>\n    <application/' android/app/src/main/AndroidManifest.xml
 
@@ -48,7 +62,7 @@ jobs:
 
       - name: Compilar APK Release
         working-directory: ./aura_finance_mobile
-        run: flutter build apk --release --android-skip-build-dependency-validation
+        run: flutter build apk --release --android-skip-build-dependency-validation --no-shrink
 
       - name: Salvar APK para Download
         uses: actions/upload-artifact@v4
