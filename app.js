@@ -75,31 +75,21 @@ const DEFAULT_FINANCIAL_STATE = {
 // =============================================================================
 class AuraStore {
   constructor() {
+    // SEMPRE inicializa com estado zerado — dados reais vêm do Supabase
     this.state = JSON.parse(JSON.stringify(DEFAULT_FINANCIAL_STATE));
-    const saved = localStorage.getItem('aura_wealth_state');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed && parsed.user) {
-          this.state = parsed;
-          if (!this.state.cards) this.state.cards = [];
-        }
-      } catch (e) {
-        console.warn('Fallback para estado padrão');
-      }
-    }
+    // Limpa quaisquer dados antigos/demo do localStorage
+    try { localStorage.removeItem('aura_wealth_state'); } catch (e) {}
     this.recalculateForecast();
   }
 
   persist() {
-    try {
-      localStorage.setItem('aura_wealth_state', JSON.stringify(this.state));
-    } catch (e) {}
+    // Não persistir dados financeiros no localStorage — Supabase é a fonte da verdade
+    // (mantido apenas para compatibilidade com código legado)
   }
 
   reset() {
     this.state = JSON.parse(JSON.stringify(DEFAULT_FINANCIAL_STATE));
-    this.persist();
+    try { localStorage.removeItem('aura_wealth_state'); } catch (e) {}
   }
 
   addTransaction(tx) {
@@ -340,19 +330,23 @@ class AuraApp {
       const { data: { session }, error } = await this.supabase.auth.getSession();
       if (session && session.user) {
         this.currentUser = session.user;
+        this.store.reset(); // garante estado zerado antes de carregar do Supabase
         await this.loadUserData(session.user);
         this.showAppView();
       } else {
+        this.store.reset(); // garante estado zerado se não autenticado
         this.showAuthView();
       }
 
       this.supabase.auth.onAuthStateChange(async (event, session) => {
         if (session && session.user) {
           this.currentUser = session.user;
+          this.store.reset(); // reseta ao trocar de usuário/sessão
           await this.loadUserData(session.user);
           this.showAppView();
         } else {
           this.currentUser = null;
+          this.store.reset();
           this.showAuthView();
         }
       });
