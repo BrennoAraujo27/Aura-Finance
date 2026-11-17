@@ -34,13 +34,13 @@ jobs:
         run: |
           rm -rf android
           flutter create . --platforms=android --org com.aurafinance
-          
-          # Ajusta minSdk para 23 para suportar biometria e armazenamento seguro
-          find android -name "build.gradle*" -exec sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 23/g' {} +
-          find android -name "build.gradle*" -exec sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 23/g' {} +
-          
-          # Insere permissoes no AndroidManifest.xml
-          sed -i '/<manifest/a \    <uses-permission android:name="android.permission.INTERNET"/>\n    <uses-permission android:name="android.permission.USE_BIOMETRIC"/>\n    <uses-permission android:name="android.permission.USE_FINGERPRINT"/>' android/app/src/main/AndroidManifest.xml
+
+          # Ajusta minSdk para 21 (necessário para webview_flutter)
+          find android -name "build.gradle*" -exec sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 21/g' {} +
+          find android -name "build.gradle*" -exec sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/g' {} +
+
+          # Permissão de Internet (obrigatória para o WebView carregar o app)
+          sed -i 's/<application/<uses-permission android:name="android.permission.INTERNET"\/>\n    <application/' android/app/src/main/AndroidManifest.xml
 
       - name: Instalar dependencias do Flutter
         working-directory: ./aura_finance_mobile
@@ -63,10 +63,12 @@ jobs:
           tag_name: release-latest
           name: Aura Wealth Android (APK Oficial Atualizado)
           body: |
-            ## 📱 Aura Wealth Android - Versão Atualizada
-            
-            - Nova identidade visual **Aura Wealth**
-            - Lançamentos manuais de compras com cartões e parcelamento (1x a 12x)
-            - Simulador FinAI: *"Quero comprar algo, mas parcelo em quantas vezes? Esse valor é saudável pra mim?"*
-            - Telas refinadas: Início, Futurômetro, FinAI e Perfil
+            ## 📱 Aura Wealth Android v2.0 - WebView Edition
+
+            O app mobile agora carrega **exatamente a mesma interface** da versão web:
+            - ✅ Visual Aura Wealth idêntico ao web (sem dados fictícios)
+            - ✅ Lançamentos manuais com cartões e parcelamento
+            - ✅ Simulador FinAI de parcelas
+            - ✅ Login real com Supabase
+            - ✅ Dados 100% reais, sem demo hardcoded
           files: aura_finance_mobile/build/app/outputs/flutter-apk/app-release.apk
