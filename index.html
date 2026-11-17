@@ -3,21 +3,25 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Aura Finance | Controle Financeiro Pessoal Inteligente</title>
-  <meta name="description" content="App inteligente de finanças pessoais com Open Finance, projeção preditiva Futurômetro, assistente IA Posso Comprar? e gamificação comportamental.">
+  <title>AURA WEALTH | Gestão Financeira Inteligente</title>
+  <meta name="description" content="Aura Wealth - Gestão financeira inteligente, análise preditiva com IA e controle comportamental.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
+  <!-- Supabase JS Client SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="theme-dark">
-  <!-- Top Navigation & Controls Bar -->
+<body class="theme-wealth">
+  <!-- Desktop Top Control Bar -->
   <header class="app-topbar">
     <div class="topbar-left">
       <div class="brand-logo">
-        <span class="logo-orb"></span>
-        <span class="brand-name">Aura<span class="brand-highlight">Finance</span></span>
-        <span class="badge-beta">AI 2.0</span>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="10" stroke="#00F090" stroke-width="2.5"/>
+          <circle cx="12" cy="12" r="4.5" fill="#00F090"/>
+        </svg>
+        <span class="brand-name">AURA <span class="brand-highlight">WEALTH</span></span>
       </div>
     </div>
 
@@ -34,15 +38,20 @@
         </button>
       </div>
 
+      <a href="/aura-wealth.apk" download="aura-wealth.apk" class="btn-action" title="Baixar APK Android para Celular" style="text-decoration: none; display: flex; align-items: center; gap: 6px; background: #00F090; color: #0D1527; font-weight: 700;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>Baixar APK</span>
+      </a>
+
       <!-- Quick Action Buttons -->
-      <button id="btnOpenFinanceSync" class="btn-action btn-sync pulse-sync" title="Sincronizar via Open Finance">
-        <svg class="spin-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-        <span class="sync-text">Sincronizar Bancos</span>
+      <button id="btnNewTransaction" class="btn-action btn-primary" title="Registrar Nova Compra">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        <span>+ Nova Compra</span>
       </button>
 
-      <button id="btnNewTransaction" class="btn-action btn-primary" title="Adicionar Transação">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        <span>Nova Transação</span>
+      <button id="btnOpenOnboarding" class="btn-action btn-sync" title="Gerenciar Cartões & Datas">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+        <span>Meus Cartões</span>
       </button>
 
       <button id="btnConfigAI" class="btn-icon" title="Configurar API Gemini">
@@ -53,732 +62,655 @@
 
   <!-- Main Viewport Container -->
   <main class="app-viewport-wrapper mode-mobile" id="viewportWrapper">
-    <!-- Smartphone Hardware Shell Frame -->
+    <!-- Smartphone Frame Mockup -->
     <div class="smartphone-frame" id="smartphoneFrame">
-      <!-- Phone Speaker / Dynamic Island -->
+      
+      <!-- Phone Dynamic Island -->
       <div class="phone-dynamic-island">
         <div class="island-camera"></div>
         <div class="island-sensor"></div>
         <div class="island-pulse" id="islandNotification" style="display: none;">
           <span class="pulse-dot"></span>
-          <span class="island-text" id="islandText">Open Finance Conectado</span>
+          <span class="island-text" id="islandText">Compra Registrada</span>
         </div>
       </div>
 
-      <!-- Phone Screen Container -->
+      <!-- Smartphone Screen -->
       <div class="phone-screen" id="phoneScreen">
         
-        <!-- Status Bar -->
-        <div class="mobile-status-bar">
-          <span class="status-time" id="statusClock">09:41</span>
-          <div class="status-icons">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4.35 19.4c-.39.39-.39 1.02 0 1.41.39.39 1.02.39 1.41 0l1.9-1.9C9.17 19.64 10.53 20 12 20c4.97 0 9-4.03 9-9s-4.03-9-9-9zm0 15c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"/></svg>
-            <span class="status-network">5G</span>
-            <div class="status-battery"><div class="battery-fill"></div></div>
+        <!-- =================================================================
+             TELA DE AUTENTICAÇÃO (LOGIN & CADASTRO SUPABASE)
+             ================================================================= -->
+        <div class="auth-screen" id="authScreen">
+          <div class="auth-card">
+            <div class="auth-brand">
+              <svg class="wealth-logo-icon" width="40" height="40" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="10" stroke="#0D1527" stroke-width="2.5"/>
+                <circle cx="12" cy="12" r="4.5" fill="#0D1527"/>
+              </svg>
+              <h1 class="auth-brand-title">AURA WEALTH</h1>
+              <p class="auth-brand-subtitle">Gestão Patrimonial Inteligente</p>
+            </div>
+
+            <!-- Tab Switcher (Login / Cadastro) -->
+            <div class="auth-tabs">
+              <button type="button" class="auth-tab-btn active" id="btnAuthTabLogin">Entrar</button>
+              <button type="button" class="auth-tab-btn" id="btnAuthTabSignup">Criar Conta</button>
+            </div>
+
+            <form id="formAuth" onsubmit="return false;">
+              <div class="input-group hidden" id="groupSignupName">
+                <label for="authName">Seu Nome Completo</label>
+                <input type="text" id="authName" class="wealth-input" placeholder="Ex: Brenno Araujo">
+              </div>
+
+              <div class="input-group">
+                <label for="authEmail">E-mail</label>
+                <input type="email" id="authEmail" class="wealth-input" placeholder="seu.email@exemplo.com" required>
+              </div>
+
+              <div class="input-group">
+                <label for="authPassword">Senha</label>
+                <input type="password" id="authPassword" class="wealth-input" placeholder="Mínimo 6 caracteres" required>
+              </div>
+
+              <div id="authErrorMessage" class="auth-error-msg hidden"></div>
+
+              <button type="submit" id="btnSubmitAuth" class="wealth-btn-navy" style="margin-top: 10px;">
+                <span id="btnSubmitAuthText">Entrar no Aura Wealth</span>
+              </button>
+            </form>
+
+            <p class="auth-footer-note">
+              Protegido com criptografia ponta a ponta e Row Level Security (RLS) no Supabase.
+            </p>
           </div>
         </div>
 
-        <!-- Phone Header / User Profile -->
-        <div class="mobile-header">
-          <div class="user-greeting">
-            <div class="avatar-badge">
-              <span class="avatar-text">MA</span>
-              <span class="avatar-status-online" title="Biometria Ativa"></span>
-            </div>
-            <div class="user-meta">
-              <span class="greeting-sub">Bem-vinda de volta,</span>
-              <h2 class="user-name">Mariana Araujo</h2>
-            </div>
-          </div>
-          <div class="header-right-badges">
-            <div class="health-score-pill" id="headerScorePill" title="Score de Saúde Financeira">
-              <span class="score-icon">🛡️</span>
-              <span class="score-val" id="topScoreVal">84</span>
-              <span class="score-label">/100</span>
+        <!-- =================================================================
+             CONTEÚDO PRINCIPAL DO APP (EXIBIDO APÓS O LOGIN)
+             ================================================================= -->
+        <div class="app-main-view" id="appMainView">
+          
+          <!-- Status Bar -->
+          <div class="mobile-status-bar">
+            <span class="status-time" id="statusClock">09:41</span>
+            <div class="status-icons">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4.35 19.4c-.39.39-.39 1.02 0 1.41.39.39 1.02.39 1.41 0l1.9-1.9C9.17 19.64 10.53 20 12 20c4.97 0 9-4.03 9-9s-4.03-9-9-9zm0 15c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"/></svg>
+              <span class="status-network">5G</span>
+              <div class="status-battery"><div class="battery-fill"></div></div>
             </div>
           </div>
-        </div>
 
-        <!-- CONTENT TAB PANELS CONTAINER -->
-        <div class="mobile-tab-content" id="tabContentScroll">
+          <!-- AURA WEALTH App Header (Consistent across all 5 screens) -->
+          <div class="wealth-header">
+            <div class="wealth-brand">
+              <svg class="wealth-logo-icon" width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="10" stroke="#0D1527" stroke-width="2.5"/>
+                <circle cx="12" cy="12" r="4.5" fill="#0D1527"/>
+              </svg>
+              <span class="wealth-brand-text">AURA WEALTH</span>
+            </div>
+            <div class="wealth-header-actions">
+              <button id="btnHeaderOnboarding" class="btn-wealth-header-action" title="Cartões e Limites">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="5" width="20" height="14" rx="2"/>
+                  <line x1="2" y1="10" x2="22" y2="10"/>
+                </svg>
+              </button>
+              <button id="btnHeaderAdd" class="btn-wealth-header-action" title="Registrar Nova Compra">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="12" y1="8" x2="12" y2="16"/>
+                  <line x1="8" y1="12" x2="16" y2="12"/>
+                </svg>
+              </button>
+            </div>
+          </div>
 
-          <!-- TAB 1: VISÃO GERAL & FLUXO DE CAIXA -->
-          <section id="panel-dashboard" class="tab-panel active">
-            <!-- Consolidated Balance Card with Glassmorphism -->
-            <div class="balance-card">
-              <div class="balance-header">
-                <span class="balance-title">Patrimônio Líquido Disponível</span>
-                <button class="btn-eye-toggle" id="btnToggleHideValues" title="Ocultar valores">
-                  <svg id="eyeOpenIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                  <svg id="eyeClosedIcon" class="hidden" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+          <!-- SCROLLABLE TAB CONTENT -->
+          <div class="mobile-tab-content" id="tabContentScroll">
+
+            <!-- =================================================================
+                 TAB 1: INÍCIO (DASHBOARD)
+                 ================================================================= -->
+            <section id="panel-dashboard" class="tab-panel active">
+              <!-- Midnight Navy Hero Card -->
+              <div class="wealth-hero-card">
+                <div class="wealth-hero-label">Patrimônio Líquido Disponível</div>
+                <div class="wealth-hero-amount">
+                  <span class="currency-symbol">R$</span>
+                  <span class="balance-amount" id="totalLiquidBalance">0,00</span>
+                </div>
+
+                <!-- Sub-cards: Entradas e Saídas do Mês -->
+                <div class="wealth-kpi-grid">
+                  <div class="wealth-kpi-subcard">
+                    <span class="wealth-kpi-label">Entradas (Mês)</span>
+                    <div class="wealth-kpi-value wealth-kpi-inflow" id="monthInflowTotal">+ R$ 0,00</div>
+                  </div>
+
+                  <div class="wealth-kpi-subcard">
+                    <span class="wealth-kpi-label">Saídas (Mês)</span>
+                    <div class="wealth-kpi-value wealth-kpi-outflow" id="monthOutflowTotal">- R$ 0,00</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Resumo de Cartões de Crédito, Vencimentos e Limites -->
+              <div class="wealth-white-card" style="margin-bottom: 12px;">
+                <div class="wealth-card-top-row">
+                  <div>
+                    <span class="wealth-card-pill-label">Cartões de Crédito</span>
+                    <h4 class="wealth-section-title" style="margin: 2px 0 0;">Limite & Vencimentos</h4>
+                  </div>
+                  <button type="button" class="btn-action-small" id="btnManageCards">Configurar</button>
+                </div>
+
+                <div class="cards-limit-metrics">
+                  <div class="card-metric-col">
+                    <span class="c-label">Limite Total</span>
+                    <span class="c-val" id="totalCreditLimit">R$ 0,00</span>
+                  </div>
+                  <div class="card-metric-col">
+                    <span class="c-label">Faturas Abertas</span>
+                    <span class="c-val text-coral" id="totalCurrentInvoice">R$ 0,00</span>
+                  </div>
+                  <div class="card-metric-col">
+                    <span class="c-label">Disponível</span>
+                    <span class="c-val text-emerald" id="totalAvailableLimit">R$ 0,00</span>
+                  </div>
+                </div>
+
+                <div class="cards-mini-list" id="cardsMiniList">
+                  <!-- Renderizado via JS com cada cartão, fatura e vencimento -->
+                </div>
+              </div>
+
+              <!-- Quick Action Bar -->
+              <div class="wealth-setup-bar">
+                <button type="button" class="btn-setup-real btn-setup-primary" id="btnQuickAddPurchase" title="Registrar uma compra no cartão ou débito">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  <span>+ Registrar Compra</span>
+                </button>
+                <button type="button" class="btn-setup-real" id="btnQuickAdjustReal" title="Defina seu salário e saldos">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                  <span>Renda & Saldos</span>
                 </button>
               </div>
 
-              <div class="balance-value-row">
-                <span class="currency-symbol">R$</span>
-                <span class="balance-amount" id="totalLiquidBalance">21.920,00</span>
+              <!-- Últimas Transações Section Header -->
+              <div class="wealth-section-header">
+                <h3 class="wealth-section-title">Últimas Compras & Lançamentos</h3>
               </div>
 
-              <!-- Quick Inflow / Outflow KPI Pills -->
-              <div class="kpi-mini-grid">
-                <div class="kpi-pill kpi-inflow">
-                  <div class="kpi-icon-wrap">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+              <!-- Transactions White Card Container -->
+              <div class="wealth-transactions-card" id="transactionListContainer">
+                <!-- Rendered via JavaScript -->
+              </div>
+            </section>
+
+            <!-- =================================================================
+                 TAB 2: FUTURÔMETRO (ANÁLISE PREDITIVA)
+                 ================================================================= -->
+            <section id="panel-futuro" class="tab-panel">
+              <div class="wealth-section-header-block">
+                <h3 class="wealth-section-title">Análise Preditiva</h3>
+                <p class="wealth-section-subtitle">Projeções de saldo baseadas em IA para o fim do mês.</p>
+              </div>
+
+              <!-- Midnight Navy Hero Card (Futurômetro) -->
+              <div class="wealth-futuro-hero">
+                <div class="wealth-futuro-tag">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                  <span>Projeção Preditiva IA</span>
+                </div>
+                <div class="wealth-futuro-sub">Saldo Previsto de Fechamento</div>
+                <div class="wealth-futuro-closing-val">R$ <span id="futuroClosingAmount">0,00</span></div>
+
+                <!-- Inner Navy Box: Gasto Diário Seguro -->
+                <div class="wealth-futuro-inner-box">
+                  <div class="wealth-safe-row">
+                    <div>
+                      <span class="wealth-safe-title">Gasto Diário Seguro</span>
+                      <p class="wealth-safe-desc">Se você gastar até este valor, fechará o mês no azul.</p>
+                    </div>
+                    <div class="wealth-safe-val-box">
+                      <span class="wealth-safe-val-amount" id="safeDailyValue">R$ 0,00 /</span>
+                      <span class="wealth-safe-val-period">dia</span>
+                    </div>
                   </div>
-                  <div class="kpi-details">
-                    <span class="kpi-label">Entradas (Mês)</span>
-                    <span class="kpi-val" id="monthInflowTotal">+ R$ 9.850,00</span>
-                  </div>
-                </div>
 
-                <div class="kpi-pill kpi-outflow">
-                  <div class="kpi-icon-wrap">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
-                  </div>
-                  <div class="kpi-details">
-                    <span class="kpi-label">Saídas (Mês)</span>
-                    <span class="kpi-val" id="monthOutflowTotal">- R$ 5.430,00</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Open Finance Connected Accounts Chips -->
-              <div class="connected-accounts-bar">
-                <div class="conn-item" title="Conta Corrente Nubank">
-                  <span class="bank-dot nu"></span>
-                  <span class="bank-name">Nubank</span>
-                  <span class="bank-bal">R$ 3.420</span>
-                </div>
-                <div class="conn-item" title="Cartão Itaú Black">
-                  <span class="bank-dot itau"></span>
-                  <span class="bank-name">Itaú Card</span>
-                  <span class="bank-bal">-R$ 2.450</span>
-                </div>
-                <div class="conn-item" title="Inter Invest">
-                  <span class="bank-dot inter"></span>
-                  <span class="bank-name">Inter</span>
-                  <span class="bank-bal">R$ 18.500</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Futurômetro Quick Banner -->
-            <div class="futuro-card-preview" id="btnGoToFuturo">
-              <div class="futuro-preview-left">
-                <div class="futuro-badge">
-                  <span class="sparkle">🔮</span>
-                  <span>FUTURÔMETRO</span>
-                </div>
-                <div class="futuro-preview-title">Saldo Previsto de Fechamento</div>
-                <div class="futuro-preview-val">R$ <span id="previewClosingBal">1.245,50</span></div>
-              </div>
-              <div class="futuro-preview-right">
-                <div class="safe-daily-box">
-                  <span class="safe-label">Gasto Diário Seguro</span>
-                  <span class="safe-val" id="previewSafeDaily">R$ 88,48/dia</span>
-                </div>
-                <span class="arrow-indicator">➔</span>
-              </div>
-            </div>
-
-            <!-- Dynamic 50/30/20 Budget Rule Monitor -->
-            <div class="section-card">
-              <div class="section-header">
-                <div>
-                  <h3 class="section-title">Orçamento 50 / 30 / 20</h3>
-                  <p class="section-subtitle">Distribuição da receita líquida do mês</p>
-                </div>
-                <span class="badge-status-ok" id="status503020">Saudável</span>
-              </div>
-
-              <div class="budget-rule-bars">
-                <!-- 50% Needs -->
-                <div class="budget-rule-item">
-                  <div class="rule-label-row">
-                    <span class="rule-name"><span class="dot-color dot-blue"></span> 50% Necessidades (Moradia, Saúde, Mercado)</span>
-                    <span class="rule-percent" id="pctNeeds">48,2%</span>
-                  </div>
-                  <div class="progress-track">
-                    <div class="progress-bar bar-blue" id="barNeeds" style="width: 48.2%;"></div>
-                  </div>
-                  <div class="rule-subtext">R$ 4.097 de R$ 4.250 planejado</div>
-                </div>
-
-                <!-- 30% Wants -->
-                <div class="budget-rule-item">
-                  <div class="rule-label-row">
-                    <span class="rule-name"><span class="dot-color dot-purple"></span> 30% Desejos (Lazer, Delivery, Compras)</span>
-                    <span class="rule-percent" id="pctWants">27,5%</span>
-                  </div>
-                  <div class="progress-track">
-                    <div class="progress-bar bar-purple" id="barWants" style="width: 27.5%;"></div>
-                  </div>
-                  <div class="rule-subtext">R$ 2.337 de R$ 2.550 planejado</div>
-                </div>
-
-                <!-- 20% Savings -->
-                <div class="budget-rule-item">
-                  <div class="rule-label-row">
-                    <span class="rule-name"><span class="dot-color dot-emerald"></span> 20% Metas & Investimentos</span>
-                    <span class="rule-percent" id="pctSavings">24,3%</span>
-                  </div>
-                  <div class="progress-track">
-                    <div class="progress-bar bar-emerald" id="barSavings" style="width: 24.3%;"></div>
-                  </div>
-                  <div class="rule-subtext">R$ 2.065 de R$ 1.700 planejado (Superavit! 🚀)</div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Interactive Donut / Cashflow Chart -->
-            <div class="section-card">
-              <div class="section-header">
-                <h3 class="section-title">Despesas por Categoria</h3>
-                <span class="badge-tag">Outubro 2026</span>
-              </div>
-
-              <div class="chart-container-donut">
-                <svg id="svgDonutChart" viewBox="0 0 200 200" class="donut-chart-svg"></svg>
-                <div class="donut-center-info">
-                  <span class="center-label">Total Gasto</span>
-                  <span class="center-val" id="donutTotalVal">R$ 5.430</span>
-                </div>
-              </div>
-
-              <!-- Category Legend Items -->
-              <div class="category-legend-list" id="categoryLegendList">
-                <!-- Dynamically populated -->
-              </div>
-            </div>
-
-            <!-- Recent Transactions Feed with ML Categorization tags -->
-            <div class="section-card">
-              <div class="section-header">
-                <div>
-                  <h3 class="section-title">Últimas Transações</h3>
-                  <p class="section-subtitle">Sincronizadas via Open Finance</p>
-                </div>
-                <button class="btn-text" id="btnFilterTransactions">Filtrar</button>
-              </div>
-
-              <div class="transaction-list" id="transactionListContainer">
-                <!-- Dynamically rendered transactions -->
-              </div>
-            </div>
-          </section>
-
-          <!-- TAB 2: MOTOR PREDITIVO "FUTURÔMETRO" & LIMITES -->
-          <section id="panel-futuro" class="tab-panel">
-            <div class="futuro-hero-card">
-              <div class="hero-badge-futuro">
-                <span>🔮 Projeção Preditiva</span>
-              </div>
-              <h2 class="futuro-hero-title">Onde você vai fechar o mês?</h2>
-              <p class="futuro-hero-desc">Cálculo em tempo real somando seus compromissos recorrentes à sua média móvel de gastos diários.</p>
-              
-              <div class="closing-projected-box">
-                <span class="proj-label">Saldo Final Estimado (31/10)</span>
-                <div class="proj-amount-wrap">
-                  <span class="proj-currency">R$</span>
-                  <span class="proj-amount" id="futuroClosingAmount">1.245,50</span>
-                  <span class="badge-surplus">Superávit</span>
-                </div>
-                <div class="confidence-indicator">
-                  <span class="conf-dot"></span>
-                  <span>Confiança do Modelo: 92% (com base em 90 dias de histórico)</span>
-                </div>
-              </div>
-
-              <!-- Safe Daily Spending Gauge -->
-              <div class="daily-gauge-box">
-                <div class="gauge-header">
-                  <span class="gauge-title">Gasto Diário Seguro</span>
-                  <span class="gauge-value" id="safeDailyValue">R$ 88,48 / dia</span>
-                </div>
-                <p class="gauge-desc">Se você mantiver seus gastos discricionários abaixo desse teto nos próximos 9 dias, fechará o mês com folga.</p>
-                
-                <!-- Interactive Spending Simulator Slider -->
-                <div class="slider-interactive-wrap">
-                  <div class="slider-label-row">
-                    <span>Simular Gasto Diário:</span>
-                    <span class="slider-val-preview" id="sliderValPreview">R$ 88,00</span>
-                  </div>
-                  <input type="range" id="simulatorSlider" min="20" max="250" value="88" step="5" class="custom-slider">
-                  <div class="slider-result" id="sliderSimulationResult">
-                    Impacto no saldo final: <strong>Sem alterações</strong>
+                  <!-- Custom Slider -->
+                  <div class="wealth-slider-track-wrap">
+                    <input type="range" id="simulatorSlider" min="50" max="500" value="150" step="5" class="wealth-custom-slider">
+                    <div class="wealth-slider-labels">
+                      <span>R$ 50</span>
+                      <span>R$ 500</span>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            </section>
 
-            <!-- "Ralos Financeiros" / Leak Tracker -->
-            <div class="section-card">
-              <div class="section-header">
-                <div>
-                  <h3 class="section-title">🚨 Detector de Ralos Financeiros</h3>
-                  <p class="section-subtitle">Microgastos frequentes e assinaturas ociosas</p>
+            <!-- =================================================================
+                 TAB 3: FINAI (COPILOT & SIMULADOR INTELIGENTE)
+                 ================================================================= -->
+            <section id="panel-ai" class="tab-panel">
+              <div class="wealth-section-header-block">
+                <div class="wealth-title-with-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0D1527" stroke-width="2.2"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2z"/></svg>
+                  <h3 class="wealth-section-title">FinAI Copilot</h3>
                 </div>
-                <span class="badge-danger" id="totalLeaksAnnual">R$ 4.280/ano</span>
+                <p class="wealth-section-subtitle">Consultor comportamental inteligente.</p>
               </div>
 
-              <div class="leak-items-list" id="leakItemsList">
-                <!-- Dynamically rendered leaks -->
-              </div>
-            </div>
+              <!-- Card 1: Simulador de Parcelamento & Saúde Financeira -->
+              <div class="wealth-white-card">
+                <span class="wealth-card-pill-label">Simulador Inteligente FinAI</span>
+                <h2 class="wealth-card-heading">Parcelo em quantas vezes? É saudável pra mim?</h2>
+                <p class="wealth-card-desc">O FinAI analisa o valor total da compra, sua margem livre mensal e o impacto no limite do seu cartão para indicar o parcelamento mais saudável.</p>
 
-            <!-- Category Limits Management -->
-            <div class="section-card">
-              <div class="section-header">
-                <div>
-                  <h3 class="section-title">Limites por Categoria</h3>
-                  <p class="section-subtitle">Alertas dinâmicos configurados em 75%, 90% e 100%</p>
-                </div>
-                <button class="btn-text" id="btnEditLimits">Ajustar</button>
-              </div>
-
-              <div class="limits-list" id="limitsListContainer">
-                <!-- Dynamically rendered limits -->
-              </div>
-            </div>
-          </section>
-
-          <!-- TAB 3: ASSISTENTE IA & "POSSO COMPRAR?" -->
-          <section id="panel-ai" class="tab-panel">
-            <div class="ai-hero-card">
-              <div class="ai-assistant-header">
-                <div class="ai-avatar">
-                  <span class="sparkle-ai">✨</span>
-                </div>
-                <div>
-                  <h2 class="ai-title">FinAI Copilot</h2>
-                  <p class="ai-subtitle">Consultor comportamental com Gemini 2.0 Flash</p>
-                </div>
-              </div>
-
-              <!-- Posso Comprar? Interactive Simulator -->
-              <div class="posso-comprar-box">
-                <div class="posso-title-row">
-                  <span class="tag-simulator">SIMULADOR INTELIGENTE</span>
-                  <h3 class="posso-heading">Posso Comprar Isso Agora?</h3>
-                </div>
-                <p class="posso-desc">Avalie o impacto exato nas suas metas e veja quantas horas de esforço de trabalho esse gasto representa.</p>
-
-                <form id="formPossoComprar" class="posso-form" onsubmit="return false;">
+                <form id="formPossoComprar" onsubmit="return false;">
                   <div class="input-group">
                     <label for="inputItemName">O que você quer comprar?</label>
-                    <input type="text" id="inputItemName" placeholder="Ex: Tênis de Corrida, Fone Bluetooth..." required>
+                    <input type="text" id="inputItemName" class="wealth-input" placeholder="Ex: Remédio, Celular, Smart TV..." required>
                   </div>
 
                   <div class="input-row-grid">
                     <div class="input-group">
-                      <label for="inputItemAmount">Preço (R$)</label>
-                      <input type="number" id="inputItemAmount" placeholder="899,00" step="0.01" min="1" required>
+                      <label for="inputItemAmount">Preço Total (R$)</label>
+                      <input type="number" id="inputItemAmount" class="wealth-input" placeholder="Ex: 109,00" step="0.01" min="1" required>
                     </div>
 
                     <div class="input-group">
-                      <label for="selectItemCategory">Categoria</label>
-                      <select id="selectItemCategory">
-                        <option value="wants_shopping">Compras / Vestuário</option>
-                        <option value="wants_electronics">Eletrônicos & Tech</option>
-                        <option value="wants_delivery">Restaurantes / Delivery</option>
-                        <option value="wants_trips">Viagens & Lazer</option>
+                      <label for="selectPurchaseCard">Cartão a Utilizar</label>
+                      <select id="selectPurchaseCard" class="wealth-input">
+                        <!-- Preenchido via JS com os cartões cadastrados e limites -->
                       </select>
                     </div>
                   </div>
 
-                  <div class="input-row-grid">
-                    <div class="input-group">
-                      <label for="selectPaymentMethod">Forma de Pagamento</label>
-                      <select id="selectPaymentMethod">
-                        <option value="PIX">À vista no Pix / Débito</option>
-                        <option value="CC_1X">Cartão de Crédito (1x)</option>
-                        <option value="CC_3X">Cartão Parcelado (3x)</option>
-                        <option value="CC_6X">Cartão Parcelado (6x)</option>
-                        <option value="CC_12X">Cartão Parcelado (12x)</option>
-                      </select>
-                    </div>
-
-                    <div class="input-group flex-align-end">
-                      <button type="button" id="btnCalculatePurchase" class="btn-calculate-glow">
-                        <span>Analisar Impacto</span>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-                      </button>
-                    </div>
-                  </div>
+                  <button type="button" id="btnCalculatePurchase" class="wealth-btn-navy" style="margin-top: 6px;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                    <span>🧠 Avaliar Saúde da Compra & Parcelas</span>
+                  </button>
                 </form>
 
-                <!-- Calculation Result Card (Dynamically updated) -->
+                <!-- Dynamic Verdict Result Container -->
                 <div class="purchase-result-card hidden" id="purchaseResultCard">
                   <div class="result-header">
-                    <span class="verdict-pill" id="verdictPill">🟡 Requer Cautela</span>
-                    <span class="result-timestamp">Calculado agora</span>
+                    <span class="verdict-pill" id="verdictPill">🟢 Compra Saudável</span>
+                    <span class="result-timestamp">Análise Cognitiva FinAI</span>
+                  </div>
+
+                  <!-- Caixa de Recomendação de Parcelas -->
+                  <div class="ai-recommendation-box" id="aiInstallmentRecommendation">
+                    <div class="ai-rec-title">💡 Recomendação de Parcelas:</div>
+                    <div class="ai-rec-highlight" id="aiRecHighlightText">Parcele em até 3x de R$ 36,33</div>
+                    <p class="ai-rec-reason" id="aiRecReasonText">Essa divisão não sufoca suas próximas faturas e preserva seu gasto diário seguro.</p>
+                  </div>
+
+                  <!-- Tabela Comparativa de 1x a 12x -->
+                  <div class="installments-sim-table" id="installmentsSimTable">
+                    <!-- Renderizado dinamicamente pelo JS -->
                   </div>
 
                   <div class="metrics-comparison-grid">
                     <div class="metric-item">
                       <span class="m-label">Custo em Trabalho</span>
-                      <span class="m-val" id="metricWorkHours">18h 40min</span>
-                      <span class="m-sub">do seu trabalho líquido</span>
+                      <span class="m-val" id="metricWorkHours">0h 00min</span>
+                      <span class="m-sub">do seu esforço líquido</span>
                     </div>
-
                     <div class="metric-item">
-                      <span class="m-label">Consumo da Folga</span>
-                      <span class="m-val" id="metricBudgetShare">45,2%</span>
-                      <span class="m-sub">do livre restante no mês</span>
+                      <span class="m-label">Impacto no Limite</span>
+                      <span class="m-val text-coral" id="metricLimitImpact">0%</span>
+                      <span class="m-sub">do limite do cartão</span>
                     </div>
-
                     <div class="metric-item">
-                      <span class="m-label">Impacto no Diário</span>
-                      <span class="m-val" id="metricDailyImpact">- R$ 29,97</span>
-                      <span class="m-sub">cai p/ R$ 58,51/dia</span>
+                      <span class="m-label">Novo Diário Seguro</span>
+                      <span class="m-val" id="metricDailyImpact">R$ 0,00</span>
+                      <span class="m-sub">restante por dia</span>
                     </div>
                   </div>
 
                   <div class="rationale-box">
                     <div class="rationale-header">
-                      <span class="icon-brain">🧠</span>
-                      <strong>Parecer do FinAI:</strong>
+                      <strong>🧠 Parecer Comportamental do FinAI:</strong>
                     </div>
                     <p class="rationale-text" id="rationaleText"></p>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <!-- Conversational Chat Assistant -->
-            <div class="section-card chat-section">
-              <div class="section-header">
-                <div>
-                  <h3 class="section-title">Conversar com o FinAI</h3>
-                  <p class="section-subtitle">Dúvidas sobre faturas, orçamentos e cortes inteligentes</p>
+              <!-- Card 2: Detector de Microgastos -->
+              <div class="wealth-white-card">
+                <div class="wealth-title-with-icon" style="margin-bottom: 14px;">
+                  <span style="font-size: 16px;">🚨</span>
+                  <h3 class="wealth-section-title" style="margin: 0;">Detector de Microgastos</h3>
                 </div>
-                <div class="chat-status-badge">
-                  <span class="status-dot-green"></span> Online
-                </div>
-              </div>
 
-              <div class="chat-messages-container" id="chatMessagesContainer">
-                <div class="chat-bubble ai-bubble">
-                  <div class="bubble-sender">FinAI</div>
-                  <div class="bubble-content">
-                    Olá, Mariana! Analisei seus últimos 7 dias. Você economizou R$ 180 em transporte, mas seus gastos com delivery aumentaram 14%. Como posso te ajudar hoje?
-                  </div>
-                  <div class="bubble-time">14:40</div>
+                <div id="leakItemsList">
+                  <!-- Rendered dynamically -->
                 </div>
               </div>
+            </section>
 
-              <!-- Chat Input Box -->
-              <div class="chat-input-bar">
-                <input type="text" id="chatInputText" placeholder="Ex: Quanto ainda posso gastar esse fim de semana?" onkeypress="if(event.key === 'Enter') document.getElementById('btnSendChat').click();">
-                <button id="btnSendChat" class="btn-send-chat" title="Enviar mensagem">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                </button>
-              </div>
-
-              <!-- Quick prompt suggestion chips -->
-              <div class="prompt-chips-row">
-                <button class="chip" onclick="app.sendQuickPrompt('Posso jantar fora hoje por R$ 120?')">Jantar fora R$ 120?</button>
-                <button class="chip" onclick="app.sendQuickPrompt('Como acelerar minha Reserva de Emergência?')">Acelerar Reserva</button>
-                <button class="chip" onclick="app.sendQuickPrompt('Qual assinatura posso cancelar?')">Cancelar Assinaturas</button>
-              </div>
-            </div>
-
-            <!-- Debt Optimizer (Avalanche vs Snowball) -->
-            <div class="section-card">
-              <div class="section-header">
-                <div>
-                  <h3 class="section-title">Otimizador de Dívidas & Financiamentos</h3>
-                  <p class="section-subtitle">Simule quitação rápida economizando juros</p>
-                </div>
-                <span class="badge-tag">Calculadora</span>
-              </div>
-
-              <div class="debt-strategy-switcher">
-                <button class="debt-btn active" id="btnDebtAvalanche">Método Avalanche (Menos Juros)</button>
-                <button class="debt-btn" id="btnDebtSnowball">Método Bola de Neve (Rápido)</button>
-              </div>
-
-              <div class="debt-summary-result" id="debtResultBox">
-                <!-- Dynamically populated comparison -->
-              </div>
-            </div>
-          </section>
-
-          <!-- TAB 4: METAS, CAIXINHAS & GAMIFICAÇÃO -->
-          <section id="panel-goals" class="tab-panel">
-            <!-- Health Score Hero Showcase -->
-            <div class="score-hero-card">
-              <div class="score-circle-wrap">
-                <svg viewBox="0 0 100 100" class="score-circle-svg">
-                  <circle cx="50" cy="50" r="42" class="score-bg-circle"></circle>
-                  <circle cx="50" cy="50" r="42" class="score-fill-circle" id="scoreFillCircle" style="stroke-dashoffset: 42;"></circle>
-                </svg>
-                <div class="score-inner-content">
-                  <span class="score-number" id="mainHealthScore">84</span>
-                  <span class="score-grade">EXCELENTE</span>
-                </div>
-              </div>
-
-              <div class="score-details-col">
-                <h3 class="score-headline">Saúde Financeira Forte 🌟</h3>
-                <p class="score-subtext">Você está no top 12% dos usuários em aderência orçamentária e taxa de poupança.</p>
-                
-                <div class="score-breakdown-mini">
-                  <div class="mini-score-item">
-                    <span>Poupança</span>
-                    <strong>23/25</strong>
-                  </div>
-                  <div class="mini-score-item">
-                    <span>Orçamento</span>
-                    <strong>22/25</strong>
-                  </div>
-                  <div class="mini-score-item">
-                    <span>Dívidas</span>
-                    <strong>25/25</strong>
-                  </div>
-                  <div class="mini-score-item">
-                    <span>Reserva</span>
-                    <strong>14/25</strong>
+            <!-- =================================================================
+                 TAB 4: PERFIL (PERFIL DO USUÁRIO & CARTÕES)
+                 ================================================================= -->
+            <section id="panel-profile" class="tab-panel">
+              <!-- Midnight Navy Profile Hero Card -->
+              <div class="wealth-profile-hero">
+                <div class="wealth-profile-top">
+                  <div class="wealth-profile-avatar-circle" id="profileAvatarText">--</div>
+                  <div class="wealth-profile-meta">
+                    <div class="wealth-profile-name-row">
+                      <h3 class="wealth-profile-name" id="profileDisplayName">Carregando...</h3>
+                      <button class="btn-edit-pencil" id="btnOpenEditProfile" title="Editar Perfil">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M12 20h9"/>
+                          <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                        </svg>
+                      </button>
+                    </div>
+                    <span class="wealth-profile-role" id="profileRoleText">MEMBRO AURA</span>
                   </div>
                 </div>
-              </div>
-            </div>
 
-            <!-- Active Financial Challenges & Streaks -->
-            <div class="section-card">
-              <div class="section-header">
-                <div>
-                  <h3 class="section-title">Desafios Semanais & Conquistas</h3>
-                  <p class="section-subtitle">Hábitos inteligentes gamificados</p>
-                </div>
-                <div class="streak-badge" title="Sequência de dias sem estourar orçamento">
-                  <span>🔥</span> <strong>14 dias</strong> de streak!
+                <div class="wealth-profile-divider"></div>
+
+                <div class="wealth-profile-confirmed">
+                  <span class="wealth-check-icon">✓</span>
+                  <span>AUTENTICADO NO SUPABASE</span>
                 </div>
               </div>
 
-              <div class="challenges-grid" id="challengesGrid">
-                <!-- Dynamic challenges -->
-              </div>
-            </div>
-
-            <!-- Virtual Goal "Caixinhas" -->
-            <div class="section-card">
-              <div class="section-header">
-                <div>
-                  <h3 class="section-title">Minhas Metas ("Caixinhas")</h3>
-                  <p class="section-subtitle">Rendimento automático e aporte planejado</p>
-                </div>
-                <button class="btn-text" id="btnNewGoal">+ Nova Meta</button>
-              </div>
-
-              <div class="goals-list" id="goalsListContainer">
-                <!-- Dynamic goals list -->
-              </div>
-            </div>
-          </section>
-
-          <!-- TAB 5: PERFIL & CONFIGURAÇÕES -->
-          <section id="panel-profile" class="tab-panel">
-            <div class="section-card profile-card">
-              <div class="profile-hero">
-                <div class="profile-avatar" id="profileAvatarText">MA</div>
-                <div class="profile-info">
-                  <h3 class="profile-name" id="profileDisplayName">Mariana Araujo</h3>
-                  <p class="profile-email" id="profileEmail">mariana.araujo@email.com</p>
-                  <span class="badge-verified">✓ Identidade Biométrica Confirmada</span>
-                </div>
-                <button class="btn-action btn-primary btn-sm" id="btnOpenEditProfile" title="Editar Meus Dados">
-                  <span>Editar Dados</span>
-                </button>
-              </div>
-
-              <div class="profile-income-box">
-                <div class="income-row">
-                  <div>
-                    <span class="income-label">Renda Líquida Mensal</span>
-                    <strong class="income-value" id="profileNetIncome">R$ 8.500,00</strong>
+              <!-- Download do APK Oficial Android -->
+              <a href="/aura-wealth.apk" download="aura-wealth.apk" class="wealth-option-card" style="text-decoration: none; border: 1.5px solid #00F090; background: linear-gradient(135deg, rgba(0, 240, 144, 0.08), rgba(13, 21, 39, 0.02));">
+                <div class="wealth-option-left">
+                  <div class="wealth-option-icon" style="background: rgba(0, 240, 144, 0.2); color: #008751;">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                   </div>
                   <div>
-                    <span class="income-label">Valor da Hora Líquida</span>
-                    <strong class="income-value" id="profileHourlyWage">R$ 53,12 / h</strong>
+                    <div class="wealth-option-title" style="color: #0D1527; font-weight: 800;">Baixar App Android (.APK)</div>
+                    <div class="wealth-option-sub" style="color: #008751; font-weight: 600;">Toque para baixar o instalador no celular (51 MB)</div>
                   </div>
                 </div>
-                <p class="income-note">Baseado em jornada de 160h/mês para o cálculo do "Posso Comprar?".</p>
+                <span class="wealth-option-arrow" style="color: #008751; font-weight: 900; font-size: 18px;">⬇</span>
+              </a>
+
+              <!-- Option Cards Below -->
+              <div class="wealth-option-card" id="btnManageCardsProfile">
+                <div class="wealth-option-left">
+                  <div class="wealth-option-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0D1527" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                  </div>
+                  <div>
+                    <div class="wealth-option-title">Meus Cartões, Limites & Vencimentos</div>
+                    <div class="wealth-option-sub" id="profileCardsSummary">Configurar cartões e datas de fatura</div>
+                  </div>
+                </div>
+                <span class="wealth-option-arrow">›</span>
               </div>
 
-              <div class="profile-menu-list">
-                <div class="menu-item" id="btnMenuEditProfile">
-                  <div class="menu-icon">👤</div>
-                  <div class="menu-text">
-                    <strong>Meus Dados Pessoais & Renda</strong>
-                    <span>Nome, salário bruto/líquido e jornada de trabalho</span>
+              <div class="wealth-option-card" id="btnEditDatesProfile">
+                <div class="wealth-option-left">
+                  <div class="wealth-option-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0D1527" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                   </div>
-                  <span class="menu-arrow">➔</span>
-                </div>
-
-                <div class="menu-item" id="btnOpenFinanceSettings">
-                  <div class="menu-icon">🏦</div>
-                  <div class="menu-text">
-                    <strong>Contas & Open Finance</strong>
-                    <span>Gerenciar saldos de contas e limites de cartões</span>
+                  <div>
+                    <div class="wealth-option-title">Datas Importantes & Salário</div>
+                    <div class="wealth-option-sub">Dia do recebimento e contas fixas</div>
                   </div>
-                  <span class="menu-arrow">➔</span>
                 </div>
-
-                <div class="menu-item" id="btnLgpdSettings">
-                  <div class="menu-icon">🔒</div>
-                  <div class="menu-text">
-                    <strong>Privacidade & LGPD</strong>
-                    <span>Criptografia AES-256 e consentimento revogável</span>
-                  </div>
-                  <span class="menu-arrow">➔</span>
-                </div>
-
-                <div class="menu-item" id="btnSecuritySettings">
-                  <div class="menu-icon">🛡️</div>
-                  <div class="menu-text">
-                    <strong>Segurança & Biometria</strong>
-                    <span>FaceID e autenticação em duas etapas ativos</span>
-                  </div>
-                  <span class="menu-arrow">➔</span>
-                </div>
-
-                <div class="menu-item" id="btnResetData">
-                  <div class="menu-icon">🔄</div>
-                  <div class="menu-text">
-                    <strong>Resetar Dados de Demonstração</strong>
-                    <span>Restaura o estado inicial padrão</span>
-                  </div>
-                  <span class="menu-arrow">➔</span>
-                </div>
+                <span class="wealth-option-arrow">›</span>
               </div>
-            </div>
-          </section>
 
-        </div> <!-- /mobile-tab-content -->
+              <!-- Botão Limpar Dados de Teste & Zerar -->
+              <div class="wealth-option-card" id="btnClearTestData" style="border-color: rgba(255, 183, 3, 0.4);">
+                <div class="wealth-option-left">
+                  <div class="wealth-option-icon" style="background: rgba(255, 183, 3, 0.1); color: #D97706;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                  </div>
+                  <div>
+                    <div class="wealth-option-title" style="color: #D97706;">Zerar Dados & Iniciar Configuração</div>
+                    <div class="wealth-option-sub">Limpar transações antigas e redefinir valores</div>
+                  </div>
+                </div>
+                <span class="wealth-option-arrow" style="color: #D97706;">›</span>
+              </div>
 
-        <!-- Bottom Navigation Bar (Native App Style) -->
-        <nav class="mobile-bottom-nav">
-          <button class="nav-btn active" data-tab="panel-dashboard">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-            <span>Início</span>
-          </button>
+              <!-- Botão Sair da Conta (Logout) -->
+              <div class="wealth-option-card" id="btnLogoutUser" style="border-color: rgba(255, 59, 92, 0.25);">
+                <div class="wealth-option-left">
+                  <div class="wealth-option-icon" style="background: rgba(255, 59, 92, 0.08); color: #FF3B5C;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                  </div>
+                  <div>
+                    <div class="wealth-option-title" style="color: #FF3B5C;">Sair da Conta</div>
+                    <div class="wealth-option-sub" id="profileEmailSubtitle">Desconectar deste dispositivo</div>
+                  </div>
+                </div>
+                <span class="wealth-option-arrow" style="color: #FF3B5C;">›</span>
+              </div>
+            </section>
 
-          <button class="nav-btn" data-tab="panel-futuro">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            <span>Futurômetro</span>
-          </button>
+          </div> <!-- /mobile-tab-content -->
 
-          <button class="nav-btn nav-btn-center" data-tab="panel-ai">
-            <div class="center-fab">
-              <span class="fab-icon">✨</span>
-            </div>
-            <span>FinAI</span>
-          </button>
+          <!-- Bottom Navigation Bar (Aura Wealth Style - 4 Tabs) -->
+          <nav class="mobile-bottom-nav">
+            <button class="nav-btn active" data-tab="panel-dashboard">
+              <svg class="nav-icon" width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+              <span>Início</span>
+            </button>
 
-          <button class="nav-btn" data-tab="panel-goals">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            <span>Metas</span>
-          </button>
+            <button class="nav-btn" data-tab="panel-futuro">
+              <svg class="nav-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+              <span>Futurômetro</span>
+            </button>
 
-          <button class="nav-btn" data-tab="panel-profile">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            <span>Perfil</span>
-          </button>
-        </nav>
+            <button class="nav-btn" data-tab="panel-ai">
+              <svg class="nav-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2z"/></svg>
+              <span>FinAI</span>
+            </button>
 
-        <!-- Home Indicator Bar (iOS Style) -->
-        <div class="home-indicator-bar"></div>
+            <button class="nav-btn" data-tab="panel-profile">
+              <svg class="nav-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              <span>Perfil</span>
+            </button>
+          </nav>
+
+          <!-- Home Indicator Bar (iOS Style) -->
+          <div class="home-indicator-bar"></div>
+
+        </div> <!-- /app-main-view -->
 
       </div> <!-- /phone-screen -->
     </div> <!-- /smartphone-frame -->
   </main>
 
-  <!-- MODAL: NOVA TRANSAÇÃO -->
+  <!-- MODAL: REGISTRAR COMPRA / LANÇAMENTO MANUAL -->
   <div class="modal-overlay hidden" id="modalTransaction">
     <div class="modal-content">
       <div class="modal-header">
-        <h3 class="modal-title">Nova Transação</h3>
+        <div>
+          <h3 class="modal-title">Registrar Nova Compra</h3>
+          <p class="section-subtitle" style="margin: 0; font-size: 12px; color: #64748B;">Lançamento manual no cartão ou débito</p>
+        </div>
         <button class="btn-close-modal" id="btnCloseTxModal">&times;</button>
       </div>
       <form id="formTransaction" onsubmit="return false;">
-        <div class="form-row-type">
-          <button type="button" class="btn-type-toggle active-expense" id="btnTypeExpense">Despesa</button>
-          <button type="button" class="btn-type-toggle" id="btnTypeIncome">Receita</button>
-        </div>
-
         <div class="input-group">
-          <label for="txDescription">Descrição / Estabelecimento</label>
-          <input type="text" id="txDescription" placeholder="Ex: Supermercado Pão de Açúcar, Uber..." required>
+          <label for="txDescription">O que você comprou?</label>
+          <input type="text" id="txDescription" placeholder="Ex: Remédio na Drogasil, Supermercado..." required>
         </div>
 
         <div class="input-row-grid">
           <div class="input-group">
-            <label for="txAmount">Valor (R$)</label>
-            <input type="number" id="txAmount" placeholder="0,00" step="0.01" min="0.01" required>
+            <label for="txAmount">Valor Total (R$)</label>
+            <input type="number" id="txAmount" placeholder="Ex: 109,00" step="0.01" min="0.01" required>
           </div>
 
           <div class="input-group">
             <label for="txCategory">Categoria</label>
             <select id="txCategory">
-              <option value="needs_supermarket">Alimentação & Mercado (50%)</option>
-              <option value="needs_housing">Moradia & Contas (50%)</option>
-              <option value="needs_health">Saúde & Cuidados (50%)</option>
-              <option value="wants_delivery">Delivery & Bares (30%)</option>
-              <option value="wants_shopping">Compras & Vestuário (30%)</option>
-              <option value="wants_entertainment">Lazer & Streaming (30%)</option>
-              <option value="savings_reserve">Aporte Reserva / Metas (20%)</option>
+              <option value="needs_health">💊 Saúde & Medicamentos</option>
+              <option value="needs_supermarket">🛒 Alimentação & Mercado</option>
+              <option value="needs_housing">🏠 Moradia & Contas</option>
+              <option value="wants_delivery">🍕 Delivery & Lazer</option>
+              <option value="wants_shopping">🛍️ Compras & Vestuário</option>
+              <option value="transport">🚗 Transporte & Gasolina</option>
+              <option value="other">📦 Outros</option>
             </select>
           </div>
         </div>
 
-        <div class="input-row-grid">
-          <div class="input-group">
-            <label for="txAccount">Conta / Cartão</label>
-            <select id="txAccount">
-              <option value="Nubank">Nubank (Conta Corrente)</option>
-              <option value="Itaú Card">Itaú Black (Cartão de Crédito)</option>
-              <option value="Inter">Inter (Conta Global)</option>
-            </select>
+        <div class="input-group">
+          <label for="txAccount">Forma de Pagamento / Cartão</label>
+          <select id="txAccount">
+            <!-- Preenchido dinamicamente com os cartões cadastrados e contas -->
+          </select>
+        </div>
+
+        <!-- Opção de Parcelamento -->
+        <div class="installment-box" id="installmentBox">
+          <div class="installment-toggle-row">
+            <label class="radio-label">
+              <input type="radio" name="paymentPlan" id="planSingle" value="1" checked>
+              <span>À vista (1x)</span>
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="paymentPlan" id="planInstallment" value="multiple">
+              <span>Parcelado no Cartão</span>
+            </label>
           </div>
 
-          <div class="input-group">
-            <label for="txPaymentMethod">Método</label>
-            <select id="txPaymentMethod">
-              <option value="PIX">Pix</option>
-              <option value="CREDIT_CARD">Cartão de Crédito</option>
-              <option value="DEBIT_CARD">Cartão de Débito</option>
-              <option value="BOLETO">Boleto</option>
+          <div class="input-group hidden" id="groupInstallmentCount" style="margin-top: 10px;">
+            <label for="txInstallments">Quantidade de Parcelas</label>
+            <select id="txInstallments">
+              <option value="2">2x</option>
+              <option value="3" selected>3x</option>
+              <option value="4">4x</option>
+              <option value="5">5x</option>
+              <option value="6">6x</option>
+              <option value="8">8x</option>
+              <option value="10">10x</option>
+              <option value="12">12x</option>
             </select>
+            <span class="installment-calc-preview" id="installmentCalcPreview">3x de R$ 0,00</span>
           </div>
+        </div>
+
+        <div class="input-group" style="margin-top: 12px;">
+          <label for="txDate">Data da Compra</label>
+          <input type="date" id="txDate">
         </div>
 
         <div class="modal-footer">
           <button type="button" class="btn-secondary" id="btnCancelTx">Cancelar</button>
-          <button type="button" class="btn-primary" id="btnSaveTx">Salvar Transação</button>
+          <button type="button" class="btn-primary" id="btnSaveTx">Registrar Compra 💳</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- MODAL: APORTE EM META / CAIXINHA -->
-  <div class="modal-overlay hidden" id="modalGoalDeposit">
-    <div class="modal-content">
+  <!-- MODAL: ONBOARDING & CONFIGURAÇÃO DE CARTÕES, DATAS E LIMITES -->
+  <div class="modal-overlay hidden" id="modalOnboarding">
+    <div class="modal-content modal-lg">
       <div class="modal-header">
-        <h3 class="modal-title">Guardar Dinheiro na Meta</h3>
-        <button class="btn-close-modal" id="btnCloseGoalModal">&times;</button>
+        <div>
+          <h3 class="modal-title" id="onboardingModalTitle">Configuração Financeira</h3>
+          <p class="section-subtitle" id="onboardingModalSub">Etapa 1 de 3: Renda & Datas</p>
+        </div>
+        <button class="btn-close-modal" id="btnCloseOnboardingModal">&times;</button>
       </div>
-      <div class="deposit-goal-info">
-        <span class="deposit-goal-name" id="depositGoalTitle">Reserva de Emergência</span>
-        <div class="deposit-goal-current" id="depositGoalCurrent">Atual: R$ 18.500 de R$ 30.000</div>
+
+      <!-- Stepper Indicator -->
+      <div class="onboarding-stepper">
+        <div class="step-indicator active" id="stepPill1">1. Renda & Salário</div>
+        <div class="step-indicator" id="stepPill2">2. Cartões & Limites</div>
+        <div class="step-indicator" id="stepPill3">3. Saldos em Conta</div>
       </div>
-      <div class="input-group">
-        <label for="goalDepositAmount">Valor a guardar agora (R$)</label>
-        <input type="number" id="goalDepositAmount" placeholder="100,00" step="10" min="10" required>
+
+      <!-- ETAPA 1: Renda & Datas Importantes -->
+      <div class="onboarding-step-panel" id="onboardingStep1">
+        <div class="input-group">
+          <label for="obUserName">Seu Nome Completo</label>
+          <input type="text" id="obUserName" placeholder="Ex: Brenno Araujo" required>
+        </div>
+
+        <div class="input-row-grid">
+          <div class="input-group">
+            <label for="obNetIncome">Renda Líquida Mensal (R$)</label>
+            <input type="number" id="obNetIncome" placeholder="Ex: 5000.00" step="50" min="0" required>
+          </div>
+          <div class="input-group">
+            <label for="obSalaryDay">Dia do Pagamento do Salário</label>
+            <input type="number" id="obSalaryDay" placeholder="Ex: 5" min="1" max="31" value="5" required>
+          </div>
+        </div>
+
+        <div class="input-row-grid">
+          <div class="input-group">
+            <label for="obWorkHours">Horas Trabalhadas no Mês</label>
+            <input type="number" id="obWorkHours" placeholder="160" value="160" min="40" max="300">
+          </div>
+          <div class="input-group">
+            <label for="obFixedExpensesDay">Dia de Pagar Contas Fixas (ex: Aluguel)</label>
+            <input type="number" id="obFixedExpensesDay" placeholder="Ex: 10" min="1" max="31" value="10">
+          </div>
+        </div>
+
+        <div class="modal-footer" style="margin-top: 20px;">
+          <div></div>
+          <button type="button" class="btn-primary" id="btnNextStep1">Avançar para Cartões →</button>
+        </div>
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn-secondary" id="btnCancelGoalDeposit">Cancelar</button>
-        <button type="button" class="btn-primary" id="btnConfirmGoalDeposit">Confirmar Aporte 🚀</button>
+
+      <!-- ETAPA 2: Cartões de Crédito, Vencimentos e Limites -->
+      <div class="onboarding-step-panel hidden" id="onboardingStep2">
+        <div class="ob-section-intro">
+          <p>Cadastre os cartões de crédito que você utiliza para controlar faturas, limites e vencimentos.</p>
+        </div>
+
+        <!-- Lista dinâmica de formulários de cartões -->
+        <div id="obCardsContainer" class="ob-cards-container">
+          <!-- Renderizado via JavaScript -->
+        </div>
+
+        <button type="button" class="btn-action-small" id="btnAddCardItem" style="margin-top: 12px; width: 100%; padding: 10px;">
+          + Adicionar Outro Cartão
+        </button>
+
+        <div class="modal-footer" style="margin-top: 20px;">
+          <button type="button" class="btn-secondary" id="btnPrevStep2">← Voltar</button>
+          <button type="button" class="btn-primary" id="btnNextStep2">Avançar para Saldos →</button>
+        </div>
+      </div>
+
+      <!-- ETAPA 3: Saldos Bancários Atuais -->
+      <div class="onboarding-step-panel hidden" id="onboardingStep3">
+        <div class="ob-section-intro">
+          <p>Informe seus saldos disponíveis hoje em conta corrente e investimentos para calibrar seu patrimônio líquido.</p>
+        </div>
+
+        <div class="input-row-grid">
+          <div class="input-group">
+            <label for="obCheckingBalance">Saldo em Conta Corrente (R$)</label>
+            <input type="number" id="obCheckingBalance" placeholder="0,00" step="10" value="0">
+          </div>
+
+          <div class="input-group">
+            <label for="obInvestmentsBalance">Investimentos & Poupança (R$)</label>
+            <input type="number" id="obInvestmentsBalance" placeholder="0,00" step="50" value="0">
+          </div>
+        </div>
+
+        <div class="modal-footer" style="margin-top: 24px;">
+          <button type="button" class="btn-secondary" id="btnPrevStep3">← Voltar</button>
+          <button type="button" class="btn-primary" id="btnSaveOnboardingAll">Salvar e Concluir 🚀</button>
+        </div>
       </div>
     </div>
   </div>
@@ -792,7 +724,7 @@
       </div>
       <p class="config-desc">
         O FinAI possui um motor cognitivo local pronto com regras financeiras completas.
-        Se desejar habilitar o modelo generativo oficial do Google Gemini em tempo real, insira sua chave abaixo (armazenada de forma segura apenas no seu navegador).
+        Se desejar habilitar o modelo generativo oficial do Google Gemini em tempo real, insira sua chave abaixo.
       </p>
       <div class="input-group">
         <label for="inputApiKey">Chave da API Gemini (Google AI Studio)</label>
@@ -818,62 +750,44 @@
 
       <form id="formEditProfile" onsubmit="return false;">
         <div class="input-group">
-          <label for="editUserName">Seu Nome Completo ou Como Quer Ser Chamado(a)</label>
+          <label for="editUserName">Seu Nome Completo</label>
           <input type="text" id="editUserName" placeholder="Ex: Brenno Araujo" required>
         </div>
 
         <div class="input-row-grid">
           <div class="input-group">
             <label for="editNetIncome">Renda Líquida Mensal (R$)</label>
-            <input type="number" id="editNetIncome" placeholder="Ex: 8500.00" step="50" min="500" required>
+            <input type="number" id="editNetIncome" placeholder="Ex: 5000.00" step="50" min="0" required>
           </div>
-          <div class="input-group">
-            <label for="editGrossIncome">Renda Bruta Mensal (R$)</label>
-            <input type="number" id="editGrossIncome" placeholder="Ex: 11200.00" step="50" min="500">
-          </div>
-        </div>
-
-        <div class="input-row-grid">
           <div class="input-group">
             <label for="editWorkHours">Horas Trabalhadas no Mês</label>
             <input type="number" id="editWorkHours" placeholder="160" value="160" min="40" max="300" required>
           </div>
-          <div class="input-group">
-            <label>Valor da Hora (Calculado)</label>
-            <input type="text" id="calcHourlyPreview" value="R$ 53,12 / h" disabled style="opacity: 0.8; font-family: var(--font-mono);">
-          </div>
         </div>
 
         <div class="form-section-divider">
-          <span>SALDOS INICIAIS DAS SUAS CONTAS</span>
+          <span>SALDOS REAIS DAS SUAS CONTAS</span>
         </div>
 
         <div class="input-row-grid">
           <div class="input-group">
             <label for="editCheckingBalance">Conta Corrente (R$)</label>
-            <input type="number" id="editCheckingBalance" placeholder="Ex: 3420.00" step="10">
+            <input type="number" id="editCheckingBalance" placeholder="0.00" step="10">
           </div>
           <div class="input-group">
             <label for="editCardInvoice">Fatura Atual do Cartão (R$)</label>
-            <input type="number" id="editCardInvoice" placeholder="Ex: 2450.00" step="10">
+            <input type="number" id="editCardInvoice" placeholder="0.00" step="10">
           </div>
         </div>
 
         <div class="input-group">
-          <label for="editInvestments">Investimentos & Reserva de Emergência (R$)</label>
-          <input type="number" id="editInvestments" placeholder="Ex: 18500.00" step="100">
-        </div>
-
-        <div class="checkbox-option-row">
-          <label class="custom-checkbox-label">
-            <input type="checkbox" id="checkClearDemoTransactions">
-            <span>Zerar transações de demonstração e começar com histórico limpo</span>
-          </label>
+          <label for="editInvestments">Investimentos & Poupança (R$)</label>
+          <input type="number" id="editInvestments" placeholder="0.00" step="100">
         </div>
 
         <div class="modal-footer">
           <button type="button" class="btn-secondary" id="btnCancelProfileEdit">Cancelar</button>
-          <button type="button" class="btn-primary" id="btnSaveProfileData">Salvar Meus Dados 💾</button>
+          <button type="button" class="btn-primary" id="btnSaveProfileData">Salvar no Supabase 💾</button>
         </div>
       </form>
     </div>

@@ -65,11 +65,11 @@ class _FinAiTabState extends State<FinAiTab> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('SIMULADOR INTELIGENTE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppTheme.accentPurple, letterSpacing: 0.6)),
-                const SizedBox(height: 4),
-                const Text('Posso Comprar Isso Agora?', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textWhite)),
-                const SizedBox(height: 4),
-                const Text('Avalie o impacto nas suas metas e veja quantas horas de esforço de trabalho esse gasto representa.', style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
+                const Text('SIMULADOR DE COMPRA & PARCELAMENTO', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppTheme.accentPurple, letterSpacing: 0.6)),
+                const SizedBox(height: 6),
+                const Text('Parcelo em quantas vezes? Esse valor é saudável pra mim?', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textWhite)),
+                const SizedBox(height: 6),
+                const Text('A inteligência calcula se o gasto cabe na sua renda e recomenda a melhor quantidade de parcelas sem comprometer suas faturas.', style: TextStyle(fontSize: 12, color: AppTheme.textMuted)),
                 const SizedBox(height: 16),
 
                 // Inputs
@@ -204,6 +204,33 @@ class _FinAiTabState extends State<FinAiTab> {
                           _result!.rationale,
                           style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.4),
                         ),
+                        const SizedBox(height: 14),
+                        const Divider(color: Colors.white12),
+                        const SizedBox(height: 8),
+                        const Text('Recomendação de Parcelamento:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.accentCyan)),
+                        const SizedBox(height: 8),
+                        for (final n in [1, 2, 3, 6, 12])
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 3),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text('${n}x de ${currency.format(_result!.amount / n)}', style: const TextStyle(fontSize: 11, color: Colors.white70)),
+                                Text(
+                                  n == 1 && _result!.verdict == PurchaseVerdict.approved
+                                      ? '⭐ Recomendado (À vista)'
+                                      : (n <= 3 ? '✅ Saudável' : '⚠️ Mais juros futuros'),
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                    color: (n == 1 && _result!.verdict == PurchaseVerdict.approved) || n <= 3
+                                        ? AppTheme.accentEmerald
+                                        : AppTheme.accentAmber,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                       ],
                     ),
                   ),

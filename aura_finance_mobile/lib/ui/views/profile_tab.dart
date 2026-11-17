@@ -97,9 +97,9 @@ class ProfileTab extends StatelessWidget {
           const SizedBox(height: 20),
 
           // Menu de Configurações
-          _buildMenuItem(Icons.account_balance, 'Conexões Open Finance', 'Nubank, Itaú Card, Inter Invest ativos'),
-          _buildMenuItem(Icons.lock_outline, 'Privacidade & LGPD', 'Criptografia AES-256 e consentimento revogável'),
-          _buildMenuItem(Icons.fingerprint, 'Segurança & Biometria', 'FaceID e autenticação de dois fatores'),
+          _buildMenuItem(Icons.credit_card, 'Meus Cartões & Limites', 'Limites, vencimento e fechamento de fatura'),
+          _buildMenuItem(Icons.event, 'Datas Importantes', 'Dia do salário e vencimentos das faturas'),
+          _buildMenuItem(Icons.lock_outline, 'Privacidade & Dados', 'Dados seguros com Supabase e criptografia'),
         ],
       ),
     );

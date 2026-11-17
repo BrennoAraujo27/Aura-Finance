@@ -5,6 +5,9 @@ on:
     branches: [ "main", "master" ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     name: Gerar APK Android
@@ -52,3 +55,18 @@ jobs:
         with:
           name: aura-finance-android-apk
           path: aura_finance_mobile/build/app/outputs/flutter-apk/app-release.apk
+
+      - name: Publicar Release Oficial no GitHub
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/heads/main')
+        with:
+          tag_name: release-latest
+          name: Aura Wealth Android (APK Oficial Atualizado)
+          body: |
+            ## 📱 Aura Wealth Android - Versão Atualizada
+            
+            - Nova identidade visual **Aura Wealth**
+            - Lançamentos manuais de compras com cartões e parcelamento (1x a 12x)
+            - Simulador FinAI: *"Quero comprar algo, mas parcelo em quantas vezes? Esse valor é saudável pra mim?"*
+            - Telas refinadas: Início, Futurômetro, FinAI e Perfil
+          files: aura_finance_mobile/build/app/outputs/flutter-apk/app-release.apk

@@ -100,7 +100,7 @@ class FinanceRepository extends ChangeNotifier {
     ),
     FinancialGoalModel(
       id: 'goal_2',
-      title: 'Viagem Europa 2027',
+      title: 'Viagem com a Crossfox',
       currentAmount: 4200.00,
       targetAmount: 15000.00,
       deadline: 'Julho 2027',
@@ -108,11 +108,11 @@ class FinanceRepository extends ChangeNotifier {
     ),
     FinancialGoalModel(
       id: 'goal_3',
-      title: 'Novo MacBook Pro M-Chip',
+      title: 'Novo Setup de Bateria',
       currentAmount: 6800.00,
       targetAmount: 12000.00,
       deadline: 'Março 2027',
-      icon: '💻',
+      icon: '🥁',
     ),
   ];
 

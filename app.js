@@ -1,253 +1,100 @@
 /**
- * AURA FINANCE - CORE APPLICATION LOGIC (ES6)
- * Sistema de Controle Financeiro Pessoal Inteligente
+ * AURA WEALTH - CORE APPLICATION LOGIC (ES6)
+ * Sistema de Controle Financeiro & Cartões de Crédito Inteligente
+ * 100% Integrado ao Supabase (PostgreSQL + RLS + Auth)
+ * Com lançamentos manuais, controle de faturas/limites e FinAI Parcelamento
  */
 
 // =============================================================================
-// 1. DEFAULT DATASET & STORE CONFIGURATION
+// 1. SUPABASE CLIENT & SEGURANÇA
+// =============================================================================
+const SUPABASE_URL = 'https://ryavbupwrpvdovctteef.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_ZlAA4-NQ2mJrL8YNh88cYA_Rp2u6pKQ';
+
+const supabaseClient = (typeof window !== 'undefined' && window.supabase && typeof window.supabase.createClient === 'function')
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  : null;
+
+function escapeHTML(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function getDaysRemainingInMonth() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const lastDay = new Date(year, month + 1, 0).getDate();
+  const currentDay = now.getDate();
+  return Math.max(1, lastDay - currentDay + 1);
+}
+
+// =============================================================================
+// 2. ESTADO INICIAL REAL (MULTI-CARTÕES & DATAS IMPORTANTES)
 // =============================================================================
 const DEFAULT_FINANCIAL_STATE = {
   user: {
-    name: 'Mariana Araujo',
-    avatar: 'MA',
-    monthlyGrossIncome: 11200.00,
-    monthlyNetIncome: 8500.00,
-    workHoursPerMonth: 160, // R$ 53,12 / hora
-    hourlyWage: 53.12,
-    hideValues: false,
-    viewMode: 'mobile', // 'mobile' | 'desktop'
+    id: null,
+    email: '',
+    name: 'Meu Perfil',
+    role: 'MEMBRO AURA',
+    avatar: 'MP',
+    monthlyGrossIncome: 0.00,
+    monthlyNetIncome: 0.00,
+    salaryDay: 5,
+    fixedExpensesDay: 10,
+    workHoursPerMonth: 160,
+    hourlyWage: 0.00,
     geminiApiKey: ''
   },
   accounts: [
-    { id: 'acc_nu', name: 'Nubank', type: 'CHECKING', balance: 3420.00, dotClass: 'nu' },
-    { id: 'acc_itau', name: 'Itaú Card', type: 'CREDIT_CARD', balance: -2450.00, creditLimit: 15000.00, dotClass: 'itau' },
-    { id: 'acc_inter', name: 'Inter Invest', type: 'INVESTMENT', balance: 18500.00, dotClass: 'inter' }
+    { id: 'acc_checking', name: 'Conta Corrente', type: 'CHECKING', balance: 0.00, dotClass: 'nu' },
+    { id: 'acc_invest', name: 'Investimentos & Poupança', type: 'INVESTMENT', balance: 0.00, dotClass: 'inter' }
   ],
-  transactions: [
-    {
-      id: 'tx_1',
-      description: 'Supermercado Pão de Açúcar',
-      cleanMerchant: 'Pão de Açúcar',
-      amount: -412.50,
-      direction: 'OUTFLOW',
-      category: 'needs_supermarket',
-      categoryLabel: 'Mercado',
-      budgetRule: 'NEEDS_50',
-      account: 'Nubank',
-      method: 'DEBIT_CARD',
-      date: '2026-10-22T11:20:00Z',
-      icon: '🛒'
-    },
-    {
-      id: 'tx_2',
-      description: 'iFood *Restaurante Mania',
-      cleanMerchant: 'iFood',
-      amount: -68.90,
-      direction: 'OUTFLOW',
-      category: 'wants_delivery',
-      categoryLabel: 'Delivery',
-      budgetRule: 'WANTS_30',
-      account: 'Itaú Card',
-      method: 'CREDIT_CARD',
-      date: '2026-10-21T20:15:00Z',
-      icon: '🍔'
-    },
-    {
-      id: 'tx_3',
-      description: 'Salário Tech Corp Brasil',
-      cleanMerchant: 'Tech Corp',
-      amount: 8500.00,
-      direction: 'INFLOW',
-      category: 'salary_income',
-      categoryLabel: 'Salário Líquido',
-      budgetRule: 'INFLOW',
-      account: 'Nubank',
-      method: 'TED',
-      date: '2026-10-05T09:00:00Z',
-      icon: '💼'
-    },
-    {
-      id: 'tx_4',
-      description: 'QuintoAndar Aluguel + Cond',
-      cleanMerchant: 'QuintoAndar',
-      amount: -2650.00,
-      direction: 'OUTFLOW',
-      category: 'needs_housing',
-      categoryLabel: 'Moradia',
-      budgetRule: 'NEEDS_50',
-      account: 'Nubank',
-      method: 'BOLETO',
-      date: '2026-10-10T14:00:00Z',
-      icon: '🏠'
-    },
-    {
-      id: 'tx_5',
-      description: 'Aporte Tesouro Selic 2029',
-      cleanMerchant: 'Tesouro Direto',
-      amount: -1500.00,
-      direction: 'OUTFLOW',
-      category: 'savings_reserve',
-      categoryLabel: 'Reserva & Aportes',
-      budgetRule: 'SAVINGS_20',
-      account: 'Inter Invest',
-      method: 'PIX',
-      date: '2026-10-06T10:30:00Z',
-      icon: '📈'
-    },
-    {
-      id: 'tx_6',
-      description: 'Uber *Trips Sao Paulo',
-      cleanMerchant: 'Uber',
-      amount: -34.80,
-      direction: 'OUTFLOW',
-      category: 'wants_delivery',
-      categoryLabel: 'Transporte App',
-      budgetRule: 'WANTS_30',
-      account: 'Itaú Card',
-      method: 'CREDIT_CARD',
-      date: '2026-10-20T18:40:00Z',
-      icon: '🚗'
-    },
-    {
-      id: 'tx_7',
-      description: 'Droga Raia Medicamentos',
-      cleanMerchant: 'Droga Raia',
-      amount: -118.20,
-      direction: 'OUTFLOW',
-      category: 'needs_health',
-      categoryLabel: 'Saúde',
-      budgetRule: 'NEEDS_50',
-      account: 'Nubank',
-      method: 'DEBIT_CARD',
-      date: '2026-10-18T16:10:00Z',
-      icon: '💊'
-    },
-    {
-      id: 'tx_8',
-      description: 'Projeto UI Freelance',
-      cleanMerchant: 'Cliente Design',
-      amount: 1350.00,
-      direction: 'INFLOW',
-      category: 'freelance_income',
-      categoryLabel: 'Freelance',
-      budgetRule: 'INFLOW',
-      account: 'Nubank',
-      method: 'PIX',
-      date: '2026-10-15T15:00:00Z',
-      icon: '✨'
-    }
+  cards: [
+    { id: 'card_1', name: 'Cartão Principal', creditLimit: 5000.00, balance: 0.00, closingDay: 8, dueDay: 15 }
   ],
-  categories: [
-    { id: 'needs_housing', name: 'Moradia & Contas', color: '#3B82F6', icon: '🏠', rule: 'NEEDS_50', spent: 2650.00, limit: 2800.00 },
-    { id: 'needs_supermarket', name: 'Alimentação & Mercado', color: '#60A5FA', icon: '🛒', rule: 'NEEDS_50', spent: 1250.00, limit: 1600.00 },
-    { id: 'needs_health', name: 'Saúde & Farmácia', color: '#93C5FD', icon: '💊', rule: 'NEEDS_50', spent: 197.00, limit: 400.00 },
-    { id: 'wants_delivery', name: 'Delivery, Bares & Lazer', color: '#A855F7', icon: '🍔', rule: 'WANTS_30', spent: 1280.00, limit: 1300.00 },
-    { id: 'wants_shopping', name: 'Compras & Vestuário', color: '#C084FC', icon: '🛍️', rule: 'WANTS_30', spent: 650.00, limit: 800.00 },
-    { id: 'wants_entertainment', name: 'Streamings & Apps', color: '#E879F9', icon: '🎬', rule: 'WANTS_30', spent: 407.00, limit: 450.00 },
-    { id: 'savings_reserve', name: 'Investimentos & Metas', color: '#00F090', icon: '🚀', rule: 'SAVINGS_20', spent: 2065.00, limit: 1700.00 }
-  ],
-  leaks: [
-    {
-      id: 'leak_gym',
-      title: 'Smart Fit Academia (Não utilizada)',
-      frequency: 'Mensal',
-      costMonthly: 149.90,
-      costAnnual: 1798.80,
-      note: 'Sem check-in nos últimos 42 dias'
-    },
-    {
-      id: 'leak_coffee',
-      title: 'Café Expresso de Rua (Microgasto diário)',
-      frequency: 'Diário útil (22x/mês)',
-      costMonthly: 264.00,
-      costAnnual: 3168.00,
-      note: 'Média de R$ 12,00 por dia útil'
-    },
-    {
-      id: 'leak_streaming',
-      title: 'Streaming de Vídeo Secundário',
-      frequency: 'Mensal',
-      costMonthly: 55.90,
-      costAnnual: 670.80,
-      note: 'Apenas 1 hora de reprodução no mês'
-    }
-  ],
-  goals: [
-    {
-      id: 'goal_emergency',
-      title: 'Reserva de Emergência (6 Meses)',
-      currentAmount: 18500.00,
-      targetAmount: 30000.00,
-      deadline: 'Dezembro 2026',
-      icon: '🛡️',
-      color: '#00F090'
-    },
-    {
-      id: 'goal_trip',
-      title: 'Viagem Europa 2027',
-      currentAmount: 4200.00,
-      targetAmount: 15000.00,
-      deadline: 'Julho 2027',
-      icon: '✈️',
-      color: '#00D2FF'
-    },
-    {
-      id: 'goal_tech',
-      title: 'Upgrade MacBook Pro M-Chip',
-      currentAmount: 6800.00,
-      targetAmount: 12000.00,
-      deadline: 'Março 2027',
-      icon: '💻',
-      color: '#9D4EDD'
-    }
-  ],
-  challenges: [
-    {
-      id: 'ch_delivery',
-      title: 'Semana Sem Delivery',
-      desc: 'Cozinhe em casa de segunda a sexta',
-      progressDays: '4/5 dias',
-      badge: 'Chef Consciente 🍳',
-      reward: '+30 pts no Score'
-    },
-    {
-      id: 'ch_leak',
-      title: 'Caçador de Ralos',
-      desc: 'Cancele 1 assinatura esquecida',
-      progressDays: 'Pronto para resgate',
-      badge: 'Mente Focada 🎯',
-      reward: '+20 pts no Score'
-    }
-  ],
+  transactions: [],
+  leaks: [],
   forecast: {
-    daysRemaining: 9,
-    projectedClosingBalance: 1245.50,
-    safeDailySpend: 88.48,
-    confidence: 92
+    daysRemaining: getDaysRemainingInMonth(),
+    projectedClosingBalance: 0.00,
+    safeDailySpend: 0.00,
+    inflowTotal: 0.00,
+    outflowTotal: 0.00
   }
 };
 
 // =============================================================================
-// 2. REACTIVE STATE STORE MANAGER
+// 3. REACTIVE STORE MANAGER
 // =============================================================================
 class AuraStore {
   constructor() {
-    const saved = localStorage.getItem('aura_finance_state');
+    this.state = JSON.parse(JSON.stringify(DEFAULT_FINANCIAL_STATE));
+    const saved = localStorage.getItem('aura_wealth_state');
     if (saved) {
       try {
-        this.state = JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.user) {
+          this.state = parsed;
+          if (!this.state.cards) this.state.cards = [];
+        }
       } catch (e) {
-        console.warn('Erro ao restaurar estado salvo. Usando dados padrão.');
-        this.state = JSON.parse(JSON.stringify(DEFAULT_FINANCIAL_STATE));
+        console.warn('Fallback para estado padrão');
       }
-    } else {
-      this.state = JSON.parse(JSON.stringify(DEFAULT_FINANCIAL_STATE));
-      this.persist();
     }
+    this.recalculateForecast();
   }
 
   persist() {
-    localStorage.setItem('aura_finance_state', JSON.stringify(this.state));
+    try {
+      localStorage.setItem('aura_wealth_state', JSON.stringify(this.state));
+    } catch (e) {}
   }
 
   reset() {
@@ -258,84 +105,111 @@ class AuraStore {
   addTransaction(tx) {
     this.state.transactions.unshift(tx);
     
-    // Atualiza saldo da conta correspondente
-    const acc = this.state.accounts.find(a => a.name === tx.account);
-    if (acc) {
-      acc.balance += tx.amount;
-    }
-
-    // Atualiza gasto na categoria correspondente
-    const cat = this.state.categories.find(c => c.id === tx.category);
-    if (cat && tx.direction === 'OUTFLOW') {
-      cat.spent += Math.abs(tx.amount);
+    // Se for compra no cartão de crédito: aumenta a fatura atual do cartão
+    if (tx.accountType === 'CREDIT_CARD' || tx.cardId) {
+      const card = this.state.cards.find(c => c.name === tx.account || c.id === tx.cardId);
+      if (card) {
+        card.balance = (parseFloat(card.balance) || 0) + Math.abs(tx.amount);
+      }
+    } else {
+      // Se for conta corrente ou investimentos
+      const acc = this.state.accounts.find(a => a.name === tx.account);
+      if (acc) {
+        acc.balance += tx.amount;
+      }
     }
 
     this.recalculateForecast();
     this.persist();
   }
 
-  depositToGoal(goalId, amount) {
-    const goal = this.state.goals.find(g => g.id === goalId);
-    if (goal) {
-      goal.currentAmount += amount;
-      
-      // Registra transação de aporte
-      this.addTransaction({
-        id: 'tx_' + Date.now(),
-        description: `Aporte Meta: ${goal.title}`,
-        cleanMerchant: goal.title,
-        amount: -amount,
-        direction: 'OUTFLOW',
-        category: 'savings_reserve',
-        categoryLabel: 'Aporte Meta',
-        budgetRule: 'SAVINGS_20',
-        account: 'Inter Invest',
-        method: 'PIX',
-        date: new Date().toISOString(),
-        icon: '🎯'
-      });
-      
-      this.persist();
-    }
-  }
-
-  removeLeak(leakId) {
-    const leak = this.state.leaks.find(l => l.id === leakId);
-    if (leak) {
-      this.state.leaks = this.state.leaks.filter(l => l.id !== leakId);
-      this.recalculateForecast();
-      this.persist();
-    }
-  }
-
   recalculateForecast() {
-    const checkingAcc = this.state.accounts.find(a => a.type === 'CHECKING');
-    const checkingBal = checkingAcc ? checkingAcc.balance : 2500;
-    const days = this.state.forecast.daysRemaining;
+    const checkingBalance = this.state.accounts
+      .filter(a => a.type === 'CHECKING' || a.type === 'INVESTMENT')
+      .reduce((sum, a) => sum + (parseFloat(a.balance) || 0), 0);
 
-    // Projeta despesas discricionárias
-    const remainingSafeSpend = checkingBal - 1500; // Reserva mínima
-    const safeDaily = remainingSafeSpend > 0 ? (remainingSafeSpend / days) : 10;
-    
-    this.state.forecast.safeDailySpend = Math.max(15, parseFloat(safeDaily.toFixed(2)));
-    this.state.forecast.projectedClosingBalance = parseFloat((checkingBal - (safeDaily * days * 0.7)).toFixed(2));
+    const totalInvoices = this.state.cards.reduce((sum, c) => sum + (parseFloat(c.balance) || 0), 0);
+
+    // Patrimônio líquido disponível = saldo líquido em conta - faturas acumuladas de cartão
+    const totalLiquid = checkingBalance - totalInvoices;
+    const days = getDaysRemainingInMonth();
+    this.state.forecast.daysRemaining = days;
+
+    // Entradas e saídas reais
+    let inflow = 0;
+    let outflow = 0;
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    this.state.transactions.forEach(t => {
+      const amt = Math.abs(parseFloat(t.amount) || 0);
+      const txDate = t.date ? new Date(t.date) : new Date();
+      if (txDate.getMonth() === currentMonth && txDate.getFullYear() === currentYear) {
+        if (t.direction === 'INFLOW' || parseFloat(t.amount) > 0) {
+          inflow += amt;
+        } else {
+          outflow += amt;
+        }
+      }
+    });
+
+    this.state.forecast.inflowTotal = inflow;
+    this.state.forecast.outflowTotal = outflow;
+
+    const monthlyNet = parseFloat(this.state.user.monthlyNetIncome) || 0;
+    let remainingBudget = 0;
+    if (monthlyNet > 0) {
+      remainingBudget = Math.max(0, monthlyNet - outflow);
+    } else {
+      remainingBudget = Math.max(0, totalLiquid);
+    }
+
+    const safeDaily = remainingBudget > 0 ? (remainingBudget / days) : 0;
+    this.state.forecast.safeDailySpend = parseFloat(safeDaily.toFixed(2));
+
+    const pendingIncome = Math.max(0, monthlyNet - inflow);
+    const projectedClosing = totalLiquid + pendingIncome - (safeDaily * days);
+    this.state.forecast.projectedClosingBalance = parseFloat(projectedClosing.toFixed(2));
   }
 }
 
 // =============================================================================
-// 3. UI CONTROLLER & RENDERING ENGINE
+// 4. UI CONTROLLER & APP ENGINE
 // =============================================================================
 class AuraApp {
   constructor() {
+    this.supabase = supabaseClient;
     this.store = new AuraStore();
-    this.currentDepositGoalId = null;
+    this.authMode = 'login';
+    this.currentUser = null;
+    this.currentOnboardingStep = 1;
+
     this.initElements();
     this.bindEvents();
-    this.renderAll();
+    this.bindAuthEvents();
     this.startClock();
+
+    this.initSession();
   }
 
   initElements() {
+    // Auth Elements
+    this.authScreen = document.getElementById('authScreen');
+    this.appMainView = document.getElementById('appMainView');
+    this.btnAuthTabLogin = document.getElementById('btnAuthTabLogin');
+    this.btnAuthTabSignup = document.getElementById('btnAuthTabSignup');
+    this.groupSignupName = document.getElementById('groupSignupName');
+    this.formAuth = document.getElementById('formAuth');
+    this.authName = document.getElementById('authName');
+    this.authEmail = document.getElementById('authEmail');
+    this.authPassword = document.getElementById('authPassword');
+    this.authErrorMessage = document.getElementById('authErrorMessage');
+    this.btnSubmitAuth = document.getElementById('btnSubmitAuth');
+    this.btnSubmitAuthText = document.getElementById('btnSubmitAuthText');
+    this.btnLogoutUser = document.getElementById('btnLogoutUser');
+    this.profileEmailSubtitle = document.getElementById('profileEmailSubtitle');
+
     // Navigation & View Mode
     this.btnViewMobile = document.getElementById('btnViewMobile');
     this.btnViewDesktop = document.getElementById('btnViewDesktop');
@@ -343,398 +217,620 @@ class AuraApp {
     this.navButtons = document.querySelectorAll('.mobile-bottom-nav .nav-btn');
     this.tabPanels = document.querySelectorAll('.tab-panel');
 
-    // Headers & KPIs
+    // Header & Actions
+    this.btnHeaderAdd = document.getElementById('btnHeaderAdd');
+    this.btnHeaderOnboarding = document.getElementById('btnHeaderOnboarding');
+    this.btnNewTransaction = document.getElementById('btnNewTransaction');
+    this.btnOpenOnboarding = document.getElementById('btnOpenOnboarding');
+    this.btnConfigAI = document.getElementById('btnConfigAI');
+    this.btnQuickAddPurchase = document.getElementById('btnQuickAddPurchase');
+    this.btnQuickAdjustReal = document.getElementById('btnQuickAdjustReal');
+
+    // Dashboard Cards & Limits Elements
     this.totalLiquidBalance = document.getElementById('totalLiquidBalance');
     this.monthInflowTotal = document.getElementById('monthInflowTotal');
     this.monthOutflowTotal = document.getElementById('monthOutflowTotal');
-    this.previewClosingBal = document.getElementById('previewClosingBal');
-    this.previewSafeDaily = document.getElementById('previewSafeDaily');
-    this.btnToggleHideValues = document.getElementById('btnToggleHideValues');
-    this.eyeOpenIcon = document.getElementById('eyeOpenIcon');
-    this.eyeClosedIcon = document.getElementById('eyeClosedIcon');
-    this.topScoreVal = document.getElementById('topScoreVal');
-    this.mainHealthScore = document.getElementById('mainHealthScore');
-    this.scoreFillCircle = document.getElementById('scoreFillCircle');
+    this.totalCreditLimit = document.getElementById('totalCreditLimit');
+    this.totalCurrentInvoice = document.getElementById('totalCurrentInvoice');
+    this.totalAvailableLimit = document.getElementById('totalAvailableLimit');
+    this.cardsMiniList = document.getElementById('cardsMiniList');
+    this.btnManageCards = document.getElementById('btnManageCards');
 
-    // 50/30/20 Monitor
-    this.pctNeeds = document.getElementById('pctNeeds');
-    this.pctWants = document.getElementById('pctWants');
-    this.pctSavings = document.getElementById('pctSavings');
-    this.barNeeds = document.getElementById('barNeeds');
-    this.barWants = document.getElementById('barWants');
-    this.barSavings = document.getElementById('barSavings');
-
-    // Charts & Lists
-    this.svgDonutChart = document.getElementById('svgDonutChart');
-    this.donutTotalVal = document.getElementById('donutTotalVal');
-    this.categoryLegendList = document.getElementById('categoryLegendList');
+    // Transactions List
     this.transactionListContainer = document.getElementById('transactionListContainer');
-    this.leakItemsList = document.getElementById('leakItemsList');
-    this.totalLeaksAnnual = document.getElementById('totalLeaksAnnual');
-    this.limitsListContainer = document.getElementById('limitsListContainer');
-    this.goalsListContainer = document.getElementById('goalsListContainer');
-    this.challengesGrid = document.getElementById('challengesGrid');
 
     // Futurômetro Tab
     this.futuroClosingAmount = document.getElementById('futuroClosingAmount');
     this.safeDailyValue = document.getElementById('safeDailyValue');
     this.simulatorSlider = document.getElementById('simulatorSlider');
-    this.sliderValPreview = document.getElementById('sliderValPreview');
-    this.sliderSimulationResult = document.getElementById('sliderSimulationResult');
-    this.btnGoToFuturo = document.getElementById('btnGoToFuturo');
 
-    // AI & Simulator
+    // FinAI Tab & Simulator
+    this.inputItemName = document.getElementById('inputItemName');
+    this.inputItemAmount = document.getElementById('inputItemAmount');
+    this.selectPurchaseCard = document.getElementById('selectPurchaseCard');
     this.btnCalculatePurchase = document.getElementById('btnCalculatePurchase');
     this.purchaseResultCard = document.getElementById('purchaseResultCard');
     this.verdictPill = document.getElementById('verdictPill');
+    this.aiRecHighlightText = document.getElementById('aiRecHighlightText');
+    this.aiRecReasonText = document.getElementById('aiRecReasonText');
+    this.installmentsSimTable = document.getElementById('installmentsSimTable');
     this.metricWorkHours = document.getElementById('metricWorkHours');
-    this.metricBudgetShare = document.getElementById('metricBudgetShare');
+    this.metricLimitImpact = document.getElementById('metricLimitImpact');
     this.metricDailyImpact = document.getElementById('metricDailyImpact');
     this.rationaleText = document.getElementById('rationaleText');
-    this.chatMessagesContainer = document.getElementById('chatMessagesContainer');
-    this.chatInputText = document.getElementById('chatInputText');
-    this.btnSendChat = document.getElementById('btnSendChat');
+    this.leakItemsList = document.getElementById('leakItemsList');
 
-    // Modals
+    // Profile Tab
+    this.profileDisplayName = document.getElementById('profileDisplayName');
+    this.profileRoleText = document.getElementById('profileRoleText');
+    this.profileAvatarText = document.getElementById('profileAvatarText');
+    this.profileCardsSummary = document.getElementById('profileCardsSummary');
+    this.btnOpenEditProfile = document.getElementById('btnOpenEditProfile');
+    this.btnManageCardsProfile = document.getElementById('btnManageCardsProfile');
+    this.btnEditDatesProfile = document.getElementById('btnEditDatesProfile');
+    this.btnClearTestData = document.getElementById('btnClearTestData');
+
+    // Modal Nova Compra
     this.modalTransaction = document.getElementById('modalTransaction');
-    this.btnNewTransaction = document.getElementById('btnNewTransaction');
     this.btnCloseTxModal = document.getElementById('btnCloseTxModal');
     this.btnCancelTx = document.getElementById('btnCancelTx');
     this.btnSaveTx = document.getElementById('btnSaveTx');
-    this.btnTypeExpense = document.getElementById('btnTypeExpense');
-    this.btnTypeIncome = document.getElementById('btnTypeIncome');
+    this.txDescription = document.getElementById('txDescription');
+    this.txAmount = document.getElementById('txAmount');
+    this.txCategory = document.getElementById('txCategory');
+    this.txAccount = document.getElementById('txAccount');
+    this.txDate = document.getElementById('txDate');
+    this.planSingle = document.getElementById('planSingle');
+    this.planInstallment = document.getElementById('planInstallment');
+    this.groupInstallmentCount = document.getElementById('groupInstallmentCount');
+    this.txInstallments = document.getElementById('txInstallments');
+    this.installmentCalcPreview = document.getElementById('installmentCalcPreview');
 
-    this.modalGoalDeposit = document.getElementById('modalGoalDeposit');
-    this.btnCloseGoalModal = document.getElementById('btnCloseGoalModal');
-    this.btnCancelGoalDeposit = document.getElementById('btnCancelGoalDeposit');
-    this.btnConfirmGoalDeposit = document.getElementById('btnConfirmGoalDeposit');
-    this.depositGoalTitle = document.getElementById('depositGoalTitle');
-    this.depositGoalCurrent = document.getElementById('depositGoalCurrent');
-    this.goalDepositAmount = document.getElementById('goalDepositAmount');
+    // Modal Onboarding (Wizard 3 Etapas)
+    this.modalOnboarding = document.getElementById('modalOnboarding');
+    this.btnCloseOnboardingModal = document.getElementById('btnCloseOnboardingModal');
+    this.onboardingModalTitle = document.getElementById('onboardingModalTitle');
+    this.onboardingModalSub = document.getElementById('onboardingModalSub');
+    this.stepPill1 = document.getElementById('stepPill1');
+    this.stepPill2 = document.getElementById('stepPill2');
+    this.stepPill3 = document.getElementById('stepPill3');
+    this.onboardingStep1 = document.getElementById('onboardingStep1');
+    this.onboardingStep2 = document.getElementById('onboardingStep2');
+    this.onboardingStep3 = document.getElementById('onboardingStep3');
+    this.btnNextStep1 = document.getElementById('btnNextStep1');
+    this.btnPrevStep2 = document.getElementById('btnPrevStep2');
+    this.btnNextStep2 = document.getElementById('btnNextStep2');
+    this.btnPrevStep3 = document.getElementById('btnPrevStep3');
+    this.btnSaveOnboardingAll = document.getElementById('btnSaveOnboardingAll');
+    this.obCardsContainer = document.getElementById('obCardsContainer');
+    this.btnAddCardItem = document.getElementById('btnAddCardItem');
+    this.obUserName = document.getElementById('obUserName');
+    this.obNetIncome = document.getElementById('obNetIncome');
+    this.obSalaryDay = document.getElementById('obSalaryDay');
+    this.obWorkHours = document.getElementById('obWorkHours');
+    this.obFixedExpensesDay = document.getElementById('obFixedExpensesDay');
+    this.obCheckingBalance = document.getElementById('obCheckingBalance');
+    this.obInvestmentsBalance = document.getElementById('obInvestmentsBalance');
 
-    this.btnConfigAI = document.getElementById('btnConfigAI');
+    // Modal AI Config
     this.modalConfigAI = document.getElementById('modalConfigAI');
     this.btnCloseConfigModal = document.getElementById('btnCloseConfigModal');
     this.btnSaveApiKey = document.getElementById('btnSaveApiKey');
     this.btnClearApiKey = document.getElementById('btnClearApiKey');
     this.inputApiKey = document.getElementById('inputApiKey');
 
-    this.btnOpenFinanceSync = document.getElementById('btnOpenFinanceSync');
-    this.islandNotification = document.getElementById('islandNotification');
+    // Dynamic Island & Toasts
     this.phoneDynamicIsland = document.querySelector('.phone-dynamic-island');
-    this.btnResetData = document.getElementById('btnResetData');
+    this.islandNotification = document.getElementById('islandNotification');
+    this.islandText = document.getElementById('islandText');
     this.toastContainer = document.getElementById('toastContainer');
-
-    // Modal Edit Profile Elements
-    this.modalEditProfile = document.getElementById('modalEditProfile');
-    this.btnCloseEditProfileModal = document.getElementById('btnCloseEditProfileModal');
-    this.btnCancelProfileEdit = document.getElementById('btnCancelProfileEdit');
-    this.btnSaveProfileData = document.getElementById('btnSaveProfileData');
-    this.btnOpenEditProfile = document.getElementById('btnOpenEditProfile');
-    this.btnMenuEditProfile = document.getElementById('btnMenuEditProfile');
-    this.editUserName = document.getElementById('editUserName');
-    this.editNetIncome = document.getElementById('editNetIncome');
-    this.editGrossIncome = document.getElementById('editGrossIncome');
-    this.editWorkHours = document.getElementById('editWorkHours');
-    this.calcHourlyPreview = document.getElementById('calcHourlyPreview');
-    this.editCheckingBalance = document.getElementById('editCheckingBalance');
-    this.editCardInvoice = document.getElementById('editCardInvoice');
-    this.editInvestments = document.getElementById('editInvestments');
-    this.checkClearDemoTransactions = document.getElementById('checkClearDemoTransactions');
-    this.profileDisplayName = document.getElementById('profileDisplayName');
-    this.profileAvatarText = document.getElementById('profileAvatarText');
-    this.profileNetIncome = document.getElementById('profileNetIncome');
-    this.profileHourlyWage = document.getElementById('profileHourlyWage');
-    this.userHeaderGreetingName = document.querySelector('.user-name');
-    this.userHeaderAvatarText = document.querySelector('.avatar-text');
   }
 
+  // ===========================================================================
+  // AUTHENTICATION & SUPABASE LIFECYCLE
+  // ===========================================================================
+  async initSession() {
+    if (!this.supabase) {
+      this.showAppView();
+      this.renderAll();
+      return;
+    }
+
+    try {
+      const { data: { session }, error } = await this.supabase.auth.getSession();
+      if (session && session.user) {
+        this.currentUser = session.user;
+        await this.loadUserData(session.user);
+        this.showAppView();
+      } else {
+        this.showAuthView();
+      }
+
+      this.supabase.auth.onAuthStateChange(async (event, session) => {
+        if (session && session.user) {
+          this.currentUser = session.user;
+          await this.loadUserData(session.user);
+          this.showAppView();
+        } else {
+          this.currentUser = null;
+          this.showAuthView();
+        }
+      });
+    } catch (e) {
+      console.error('Erro ao verificar sessão Supabase:', e);
+      this.showAuthView();
+    }
+  }
+
+  showAuthView() {
+    if (this.authScreen) this.authScreen.classList.remove('hidden');
+    if (this.appMainView) this.appMainView.classList.add('hidden');
+  }
+
+  showAppView() {
+    if (this.authScreen) this.authScreen.classList.add('hidden');
+    if (this.appMainView) this.appMainView.classList.remove('hidden');
+    this.renderAll();
+  }
+
+  bindAuthEvents() {
+    if (this.btnAuthTabLogin) {
+      this.btnAuthTabLogin.addEventListener('click', () => {
+        this.authMode = 'login';
+        this.btnAuthTabLogin.classList.add('active');
+        this.btnAuthTabSignup.classList.remove('active');
+        if (this.groupSignupName) this.groupSignupName.classList.add('hidden');
+        if (this.btnSubmitAuthText) this.btnSubmitAuthText.textContent = 'Entrar no Aura Wealth';
+        this.hideAuthError();
+      });
+    }
+
+    if (this.btnAuthTabSignup) {
+      this.btnAuthTabSignup.addEventListener('click', () => {
+        this.authMode = 'signup';
+        this.btnAuthTabSignup.classList.add('active');
+        this.btnAuthTabLogin.classList.remove('active');
+        if (this.groupSignupName) this.groupSignupName.classList.remove('hidden');
+        if (this.btnSubmitAuthText) this.btnSubmitAuthText.textContent = 'Cadastrar no Aura Wealth';
+        this.hideAuthError();
+      });
+    }
+
+    if (this.formAuth) {
+      this.formAuth.addEventListener('submit', (e) => {
+        e.preventDefault();
+        this.handleAuthSubmit();
+      });
+    }
+
+    if (this.btnSubmitAuth) {
+      this.btnSubmitAuth.addEventListener('click', () => {
+        this.handleAuthSubmit();
+      });
+    }
+
+    if (this.btnLogoutUser) {
+      this.btnLogoutUser.addEventListener('click', async () => {
+        if (!confirm('Deseja realmente sair da sua conta no Aura Wealth?')) return;
+        if (this.supabase) {
+          await this.supabase.auth.signOut();
+        }
+        this.showToast('Você saiu da sua conta.');
+        this.showAuthView();
+      });
+    }
+  }
+
+  async handleAuthSubmit() {
+    const email = (this.authEmail?.value || '').trim();
+    const password = (this.authPassword?.value || '').trim();
+    const name = (this.authName?.value || '').trim();
+
+    if (!email || !password) {
+      this.showAuthError('Por favor, informe e-mail e senha.');
+      return;
+    }
+
+    if (password.length < 6) {
+      this.showAuthError('A senha deve ter no mínimo 6 caracteres.');
+      return;
+    }
+
+    this.hideAuthError();
+    if (this.btnSubmitAuth) this.btnSubmitAuth.disabled = true;
+    if (this.btnSubmitAuthText) this.btnSubmitAuthText.textContent = 'Processando...';
+
+    try {
+      if (this.authMode === 'login') {
+        const { data, error } = await this.supabase.auth.signInWithPassword({ email, password });
+        if (error) {
+          const msg = error.message.includes('Invalid login credentials')
+            ? 'E-mail ou senha incorretos. Verifique e tente novamente.'
+            : error.message;
+          this.showAuthError(msg);
+        } else if (data.session) {
+          this.showToast('Login realizado com sucesso! Bem-vindo.');
+        }
+      } else {
+        const displayName = name || 'Membro Aura';
+        const { data, error } = await this.supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { name: displayName }
+          }
+        });
+
+        if (error) {
+          this.showAuthError(error.message);
+        } else if (data.user && !data.session) {
+          this.showAuthSuccess('Conta criada com sucesso! Faça login para continuar.');
+        } else if (data.session) {
+          this.showToast(`Conta criada com sucesso! Bem-vindo, ${displayName.split(' ')[0]}!`);
+          this.openOnboardingModal();
+        }
+      }
+    } catch (err) {
+      this.showAuthError('Erro de conexão com o servidor. Tente novamente.');
+      console.error(err);
+    } finally {
+      if (this.btnSubmitAuth) this.btnSubmitAuth.disabled = false;
+      if (this.btnSubmitAuthText) {
+        this.btnSubmitAuthText.textContent = this.authMode === 'login' ? 'Entrar no Aura Wealth' : 'Cadastrar no Aura Wealth';
+      }
+    }
+  }
+
+  showAuthError(msg) {
+    if (!this.authErrorMessage) return;
+    this.authErrorMessage.className = 'auth-error-msg';
+    this.authErrorMessage.textContent = msg;
+    this.authErrorMessage.classList.remove('hidden');
+  }
+
+  showAuthSuccess(msg) {
+    if (!this.authErrorMessage) return;
+    this.authErrorMessage.className = 'auth-success-msg';
+    this.authErrorMessage.textContent = msg;
+    this.authErrorMessage.classList.remove('hidden');
+  }
+
+  hideAuthError() {
+    if (this.authErrorMessage) {
+      this.authErrorMessage.classList.add('hidden');
+      this.authErrorMessage.textContent = '';
+    }
+  }
+
+  // ===========================================================================
+  // DATA SYNC WITH SUPABASE
+  // ===========================================================================
+  async loadUserData(user) {
+    if (!this.supabase || !user) return;
+    const userId = user.id;
+    const userEmail = user.email || '';
+    const userMeta = user.user_metadata || {};
+
+    if (this.profileEmailSubtitle) {
+      this.profileEmailSubtitle.textContent = userEmail;
+    }
+
+    try {
+      // 1. Perfil
+      let { data: profile } = await this.supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (!profile) {
+        const rawName = userMeta.name || userEmail.split('@')[0];
+        const newProfile = {
+          id: userId,
+          name: rawName,
+          role: 'MEMBRO AURA',
+          monthly_net_income: 0.00,
+          hourly_wage: 0.00
+        };
+        await this.supabase.from('profiles').insert(newProfile);
+        profile = newProfile;
+      }
+
+      const userName = profile.name || 'Membro Aura';
+      const parts = userName.split(' ').filter(p => p.length > 0);
+      const initials = parts.length > 1
+        ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+        : userName.substring(0, 2).toUpperCase();
+
+      this.store.state.user = {
+        id: userId,
+        email: userEmail,
+        name: userName,
+        role: profile.role || 'MEMBRO AURA',
+        avatar: initials,
+        monthlyNetIncome: parseFloat(profile.monthly_net_income || 0),
+        salaryDay: profile.salary_day || 5,
+        fixedExpensesDay: profile.fixed_expenses_day || 10,
+        workHoursPerMonth: 160,
+        hourlyWage: parseFloat(profile.hourly_wage || 0),
+        geminiApiKey: ''
+      };
+
+      // 2. Contas & Cartões
+      let { data: accounts } = await this.supabase
+        .from('accounts')
+        .select('*')
+        .order('created_at', { ascending: true });
+
+      if (!accounts || accounts.length === 0) {
+        const initialAccounts = [
+          { user_id: userId, name: 'Conta Corrente', type: 'CHECKING', balance: 0.00 },
+          { user_id: userId, name: 'Cartão Nubank', type: 'CREDIT_CARD', balance: 0.00 }
+        ];
+        const { data: insertedAccounts } = await this.supabase.from('accounts').insert(initialAccounts).select();
+        accounts = insertedAccounts || initialAccounts;
+      }
+
+      // Separa contas correntes/investimentos de cartões de crédito
+      const bankAccounts = [];
+      const creditCards = [];
+
+      accounts.forEach(a => {
+        if (a.type === 'CREDIT_CARD') {
+          creditCards.push({
+            id: a.id,
+            name: a.name,
+            creditLimit: parseFloat(a.credit_limit || 5000),
+            balance: Math.abs(parseFloat(a.balance || 0)),
+            closingDay: a.closing_day || 8,
+            dueDay: a.due_day || 15
+          });
+        } else {
+          bankAccounts.push({
+            id: a.id,
+            name: a.name,
+            type: a.type,
+            balance: parseFloat(a.balance || 0),
+            dotClass: a.type === 'CHECKING' ? 'nu' : 'inter'
+          });
+        }
+      });
+
+      this.store.state.accounts = bankAccounts;
+      this.store.state.cards = creditCards;
+
+      // 3. Transações
+      let { data: transactions } = await this.supabase
+        .from('transactions')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(30);
+
+      this.store.state.transactions = (transactions || []).map(t => {
+        const isIncome = t.direction === 'INFLOW' || parseFloat(t.amount) > 0;
+        return {
+          id: t.id,
+          description: t.description,
+          cleanMerchant: t.description,
+          amount: parseFloat(t.amount),
+          direction: t.direction,
+          category: t.category,
+          categoryLabel: isIncome ? 'RECEITA' : (t.category ? t.category.replace('needs_', '').replace('wants_', '').toUpperCase() : 'COMPRA'),
+          dateLabel: 'RECENTE',
+          account: t.account_name || 'Cartão',
+          accountType: t.account_type || (t.account_name && t.account_name.toLowerCase().includes('cartão') ? 'CREDIT_CARD' : 'CHECKING'),
+          method: t.payment_method || 'CREDIT_CARD',
+          installments: t.installments || 1,
+          date: t.created_at || new Date().toISOString()
+        };
+      });
+
+      this.store.recalculateForecast();
+      this.store.persist();
+      this.renderAll();
+    } catch (err) {
+      console.error('Erro sincronizando dados do Supabase:', err);
+    }
+  }
+
+  // ===========================================================================
+  // DOM EVENT LISTENERS
+  // ===========================================================================
   bindEvents() {
-    // Mode switcher (Mobile vs Desktop)
-    this.btnViewMobile.addEventListener('click', () => this.switchViewMode('mobile'));
-    this.btnViewDesktop.addEventListener('click', () => this.switchViewMode('desktop'));
+    if (this.btnViewMobile) this.btnViewMobile.addEventListener('click', () => this.switchViewMode('mobile'));
+    if (this.btnViewDesktop) this.btnViewDesktop.addEventListener('click', () => this.switchViewMode('desktop'));
 
-    // Profile Edit Modal
-    if (this.btnOpenEditProfile) {
-      this.btnOpenEditProfile.addEventListener('click', () => this.openEditProfileModal());
-    }
-    if (this.btnMenuEditProfile) {
-      this.btnMenuEditProfile.addEventListener('click', () => this.openEditProfileModal());
-    }
-    const avatarBadge = document.querySelector('.avatar-badge');
-    if (avatarBadge) {
-      avatarBadge.style.cursor = 'pointer';
-      avatarBadge.title = 'Clique para editar seu perfil';
-      avatarBadge.addEventListener('click', () => this.openEditProfileModal());
-    }
-    if (this.btnCloseEditProfileModal) {
-      this.btnCloseEditProfileModal.addEventListener('click', () => this.closeEditProfileModal());
-    }
-    if (this.btnCancelProfileEdit) {
-      this.btnCancelProfileEdit.addEventListener('click', () => this.closeEditProfileModal());
-    }
-    if (this.btnSaveProfileData) {
-      this.btnSaveProfileData.addEventListener('click', () => this.handleSaveProfileData());
-    }
-
-    const updateHourlyLive = () => {
-      const net = parseFloat(this.editNetIncome.value) || 0;
-      const hours = parseFloat(this.editWorkHours.value) || 160;
-      const wage = hours > 0 ? (net / hours).toFixed(2) : '0.00';
-      this.calcHourlyPreview.value = `R$ ${this.formatCurrency(parseFloat(wage))} / h`;
-    };
-    if (this.editNetIncome) this.editNetIncome.addEventListener('input', updateHourlyLive);
-    if (this.editWorkHours) this.editWorkHours.addEventListener('input', updateHourlyLive);
-
-    // Tab Navigation
     this.navButtons.forEach(btn => {
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', () => {
         const targetTab = btn.getAttribute('data-tab');
         this.switchTab(targetTab, btn);
       });
     });
 
-    if (this.btnGoToFuturo) {
-      this.btnGoToFuturo.addEventListener('click', () => {
-        const targetBtn = document.querySelector('.nav-btn[data-tab="panel-futuro"]');
-        this.switchTab('panel-futuro', targetBtn);
+    // Ações de Abrir Nova Compra
+    if (this.btnHeaderAdd) this.btnHeaderAdd.addEventListener('click', () => this.openTransactionModal());
+    if (this.btnNewTransaction) this.btnNewTransaction.addEventListener('click', () => this.openTransactionModal());
+    if (this.btnQuickAddPurchase) this.btnQuickAddPurchase.addEventListener('click', () => this.openTransactionModal());
+
+    // Ações de Onboarding / Gerenciar Cartões
+    if (this.btnHeaderOnboarding) this.btnHeaderOnboarding.addEventListener('click', () => this.openOnboardingModal());
+    if (this.btnOpenOnboarding) this.btnOpenOnboarding.addEventListener('click', () => this.openOnboardingModal());
+    if (this.btnManageCards) this.btnManageCards.addEventListener('click', () => this.openOnboardingModal(2));
+    if (this.btnManageCardsProfile) this.btnManageCardsProfile.addEventListener('click', () => this.openOnboardingModal(2));
+    if (this.btnEditDatesProfile) this.btnEditDatesProfile.addEventListener('click', () => this.openOnboardingModal(1));
+    if (this.btnQuickAdjustReal) this.btnQuickAdjustReal.addEventListener('click', () => this.openOnboardingModal(1));
+    if (this.btnOpenEditProfile) this.btnOpenEditProfile.addEventListener('click', () => this.openOnboardingModal(1));
+
+    // Zerar Dados
+    if (this.btnClearTestData) this.btnClearTestData.addEventListener('click', () => this.clearTestDataAndReset());
+
+    // Futurômetro Slider
+    if (this.simulatorSlider) {
+      this.simulatorSlider.addEventListener('input', (e) => this.onSliderSimulate(e.target.value));
+    }
+
+    // FinAI Calculator
+    if (this.btnCalculatePurchase) {
+      this.btnCalculatePurchase.addEventListener('click', () => this.handleCalculatePurchase());
+    }
+
+    // Modals: Compra Manual
+    if (this.btnCloseTxModal) this.btnCloseTxModal.addEventListener('click', () => this.closeTransactionModal());
+    if (this.btnCancelTx) this.btnCancelTx.addEventListener('click', () => this.closeTransactionModal());
+    if (this.btnSaveTx) this.btnSaveTx.addEventListener('click', () => this.handleSaveTransaction());
+
+    // Alternância de Parcelamento no Modal de Compra
+    if (this.planSingle && this.planInstallment) {
+      this.planSingle.addEventListener('change', () => {
+        if (this.groupInstallmentCount) this.groupInstallmentCount.classList.add('hidden');
+      });
+      this.planInstallment.addEventListener('change', () => {
+        if (this.groupInstallmentCount) this.groupInstallmentCount.classList.remove('hidden');
+        this.updateInstallmentPreview();
       });
     }
 
-    // Hide/Show Values
-    this.btnToggleHideValues.addEventListener('click', () => this.toggleHideValues());
+    if (this.txAmount && this.txInstallments) {
+      this.txAmount.addEventListener('input', () => this.updateInstallmentPreview());
+      this.txInstallments.addEventListener('change', () => this.updateInstallmentPreview());
+    }
 
-    // Futurômetro Slider Simulation
-    this.simulatorSlider.addEventListener('input', (e) => this.onSliderSimulate(e.target.value));
-
-    // Posso Comprar? Simulation
-    this.btnCalculatePurchase.addEventListener('click', () => this.handleCalculatePurchase());
-
-    // Chat
-    this.btnSendChat.addEventListener('click', () => this.handleSendChatMessage());
-
-    // Modals: New Transaction
-    this.btnNewTransaction.addEventListener('click', () => this.openTransactionModal());
-    this.btnCloseTxModal.addEventListener('click', () => this.closeTransactionModal());
-    this.btnCancelTx.addEventListener('click', () => this.closeTransactionModal());
-    this.btnSaveTx.addEventListener('click', () => this.handleSaveTransaction());
-
-    this.btnTypeExpense.addEventListener('click', () => {
-      this.btnTypeExpense.className = 'btn-type-toggle active-expense';
-      this.btnTypeIncome.className = 'btn-type-toggle';
-    });
-
-    this.btnTypeIncome.addEventListener('click', () => {
-      this.btnTypeIncome.className = 'btn-type-toggle active-income';
-      this.btnTypeExpense.className = 'btn-type-toggle';
-    });
-
-    // Modals: Goal Deposit
-    this.btnCloseGoalModal.addEventListener('click', () => this.closeGoalModal());
-    this.btnCancelGoalDeposit.addEventListener('click', () => this.closeGoalModal());
-    this.btnConfirmGoalDeposit.addEventListener('click', () => this.handleConfirmGoalDeposit());
+    // Modals: Onboarding Wizard
+    if (this.btnCloseOnboardingModal) this.btnCloseOnboardingModal.addEventListener('click', () => this.closeOnboardingModal());
+    if (this.btnNextStep1) this.btnNextStep1.addEventListener('click', () => this.goToOnboardingStep(2));
+    if (this.btnPrevStep2) this.btnPrevStep2.addEventListener('click', () => this.goToOnboardingStep(1));
+    if (this.btnNextStep2) this.btnNextStep2.addEventListener('click', () => this.goToOnboardingStep(3));
+    if (this.btnPrevStep3) this.btnPrevStep3.addEventListener('click', () => this.goToOnboardingStep(2));
+    if (this.btnAddCardItem) this.btnAddCardItem.addEventListener('click', () => this.addCardItemRow());
+    if (this.btnSaveOnboardingAll) this.btnSaveOnboardingAll.addEventListener('click', () => this.saveOnboardingData());
 
     // Modals: AI Config
-    this.btnConfigAI.addEventListener('click', () => this.openConfigModal());
-    this.btnCloseConfigModal.addEventListener('click', () => this.closeConfigModal());
-    this.btnSaveApiKey.addEventListener('click', () => this.saveApiKey());
-    this.btnClearApiKey.addEventListener('click', () => this.clearApiKey());
-
-    // Open Finance Simulation
-    this.btnOpenFinanceSync.addEventListener('click', () => this.triggerOpenFinanceSync());
-
-    // Reset Data
-    this.btnResetData.addEventListener('click', () => {
-      if (confirm('Deseja resetar todos os dados para o estado de demonstração original?')) {
-        this.store.reset();
-        this.renderAll();
-        this.showToast('Dados restaurados com sucesso!');
-      }
-    });
-
-    // Debt Strategy Toggle
-    const btnAv = document.getElementById('btnDebtAvalanche');
-    const btnSnow = document.getElementById('btnDebtSnowball');
-    if (btnAv && btnSnow) {
-      btnAv.addEventListener('click', () => {
-        btnAv.classList.add('active');
-        btnSnow.classList.remove('active');
-        this.renderDebtStrategy('avalanche');
-      });
-      btnSnow.addEventListener('click', () => {
-        btnSnow.classList.add('active');
-        btnAv.classList.remove('active');
-        this.renderDebtStrategy('snowball');
-      });
-    }
+    if (this.btnConfigAI) this.btnConfigAI.addEventListener('click', () => this.openConfigModal());
+    if (this.btnCloseConfigModal) this.btnCloseConfigModal.addEventListener('click', () => this.closeConfigModal());
+    if (this.btnSaveApiKey) this.btnSaveApiKey.addEventListener('click', () => this.saveApiKey());
+    if (this.btnClearApiKey) this.btnClearApiKey.addEventListener('click', () => this.clearApiKey());
   }
 
   // ===========================================================================
-  // RENDER METHODS
+  // RENDERING ENGINE
   // ===========================================================================
   renderAll() {
     this.renderHeaderBalances();
-    this.render503020();
-    this.renderDonutChart();
+    this.renderCardsOverview();
     this.renderTransactions();
     this.renderFuturo();
-    this.renderLeaks();
-    this.renderLimits();
-    this.renderGoals();
-    this.renderChallenges();
-    this.renderDebtStrategy('avalanche');
-    this.renderHealthScore();
+    this.renderProfile();
+    this.populateCardSelects();
   }
 
   formatCurrency(val) {
-    if (this.store.state.user.hideValues) return '••••••';
-    return val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const num = isNaN(val) ? 0 : val;
+    return num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
   renderHeaderBalances() {
-    // Total Patrimônio Líquido (soma de saldos das contas)
-    const total = this.store.state.accounts.reduce((acc, curr) => acc + curr.balance, 0);
-    this.totalLiquidBalance.textContent = this.formatCurrency(total);
+    const checkingBalance = this.store.state.accounts
+      .filter(a => a.type === 'CHECKING' || a.type === 'INVESTMENT')
+      .reduce((sum, a) => sum + (parseFloat(a.balance) || 0), 0);
 
-    // Entradas e Saídas do Mês
-    const inflows = this.store.state.transactions
-      .filter(t => t.direction === 'INFLOW')
-      .reduce((sum, t) => sum + t.amount, 0);
+    const totalInvoices = this.store.state.cards.reduce((sum, c) => sum + (parseFloat(c.balance) || 0), 0);
+    const netLiquid = checkingBalance - totalInvoices;
 
-    const outflows = this.store.state.transactions
-      .filter(t => t.direction === 'OUTFLOW')
-      .reduce((sum, t) => sum + Math.abs(t.amount), 0);
-
-    this.monthInflowTotal.textContent = `+ R$ ${this.formatCurrency(inflows)}`;
-    this.monthOutflowTotal.textContent = `- R$ ${this.formatCurrency(outflows)}`;
-
-    // Preview do Futurômetro
-    this.previewClosingBal.textContent = this.formatCurrency(this.store.state.forecast.projectedClosingBalance);
-    this.previewSafeDaily.textContent = `R$ ${this.formatCurrency(this.store.state.forecast.safeDailySpend)}/dia`;
-
-    // Atualiza dados de identificação do usuário
-    const user = this.store.state.user;
-    if (this.userHeaderGreetingName) this.userHeaderGreetingName.textContent = user.name;
-    if (this.userHeaderAvatarText) this.userHeaderAvatarText.textContent = user.avatar || 'US';
-    if (this.profileDisplayName) this.profileDisplayName.textContent = user.name;
-    if (this.profileAvatarText) this.profileAvatarText.textContent = user.avatar || 'US';
-    if (this.profileNetIncome) this.profileNetIncome.textContent = `R$ ${this.formatCurrency(user.monthlyNetIncome)}`;
-    if (this.profileHourlyWage) this.profileHourlyWage.textContent = `R$ ${this.formatCurrency(user.hourlyWage)} / h`;
-  }
-
-  render503020() {
-    const net = this.store.state.user.monthlyNetIncome; // R$ 8.500
-    const needsSpent = this.store.state.categories
-      .filter(c => c.rule === 'NEEDS_50')
-      .reduce((acc, c) => acc + c.spent, 0);
-
-    const wantsSpent = this.store.state.categories
-      .filter(c => c.rule === 'WANTS_30')
-      .reduce((acc, c) => acc + c.spent, 0);
-
-    const savingsSpent = this.store.state.categories
-      .filter(c => c.rule === 'SAVINGS_20')
-      .reduce((acc, c) => acc + c.spent, 0);
-
-    const pctN = ((needsSpent / net) * 100).toFixed(1);
-    const pctW = ((wantsSpent / net) * 100).toFixed(1);
-    const pctS = ((savingsSpent / net) * 100).toFixed(1);
-
-    this.pctNeeds.textContent = `${pctN}%`;
-    this.pctWants.textContent = `${pctW}%`;
-    this.pctSavings.textContent = `${pctS}%`;
-
-    this.barNeeds.style.width = `${Math.min(pctN, 100)}%`;
-    this.barWants.style.width = `${Math.min(pctW, 100)}%`;
-    this.barSavings.style.width = `${Math.min(pctS, 100)}%`;
-
-    const statusBadge = document.getElementById('status503020');
-    if (pctN <= 52 && pctW <= 32) {
-      statusBadge.textContent = 'Saudável';
-      statusBadge.className = 'badge-status-ok';
-    } else {
-      statusBadge.textContent = 'Atenção';
-      statusBadge.className = 'badge-danger';
+    if (this.totalLiquidBalance) {
+      this.totalLiquidBalance.textContent = this.formatCurrency(netLiquid);
+    }
+    if (this.monthInflowTotal) {
+      this.monthInflowTotal.textContent = `+ R$ ${this.formatCurrency(this.store.state.forecast.inflowTotal)}`;
+    }
+    if (this.monthOutflowTotal) {
+      this.monthOutflowTotal.textContent = `- R$ ${this.formatCurrency(this.store.state.forecast.outflowTotal)}`;
     }
   }
 
-  renderDonutChart() {
-    const categories = this.store.state.categories;
-    const totalSpent = categories.reduce((sum, c) => sum + c.spent, 0);
-    this.donutTotalVal.textContent = `R$ ${this.formatCurrency(totalSpent)}`;
+  renderCardsOverview() {
+    const cards = this.store.state.cards || [];
+    const totalLimit = cards.reduce((sum, c) => sum + (parseFloat(c.creditLimit) || 0), 0);
+    const totalInvoices = cards.reduce((sum, c) => sum + (parseFloat(c.balance) || 0), 0);
+    const available = Math.max(0, totalLimit - totalInvoices);
 
-    // Gera segmentos SVG Donut com stroke-dasharray
-    const radius = 68;
-    const circumference = 2 * Math.PI * radius; // ~427.25
-    let offset = 0;
-    let svgHtml = '';
-    let legendHtml = '';
+    if (this.totalCreditLimit) this.totalCreditLimit.textContent = `R$ ${this.formatCurrency(totalLimit)}`;
+    if (this.totalCurrentInvoice) this.totalCurrentInvoice.textContent = `R$ ${this.formatCurrency(totalInvoices)}`;
+    if (this.totalAvailableLimit) this.totalAvailableLimit.textContent = `R$ ${this.formatCurrency(available)}`;
 
-    categories.forEach((cat) => {
-      const share = totalSpent > 0 ? (cat.spent / totalSpent) : 0;
-      const strokeDash = share * circumference;
-      const strokeGap = circumference - strokeDash;
+    if (!this.cardsMiniList) return;
 
-      svgHtml += `
-        <circle class="donut-segment" cx="100" cy="100" r="${radius}"
-          stroke="${cat.color}"
-          stroke-dasharray="${strokeDash} ${strokeGap}"
-          stroke-dashoffset="${-offset}">
-        </circle>
+    if (cards.length === 0) {
+      this.cardsMiniList.innerHTML = `
+        <div style="text-align: center; padding: 10px; font-size: 12px; color: #94A3B8;">
+          Nenhum cartão cadastrado. Clique em "Configurar" para adicionar seus cartões.
+        </div>
       `;
+      return;
+    }
 
-      offset += strokeDash;
+    const todayDay = new Date().getDate();
+    let html = '';
+    cards.forEach(c => {
+      const dueDay = c.dueDay || 15;
+      let dueText = `Vence dia ${dueDay}`;
+      if (dueDay >= todayDay) {
+        dueText = `Vence em ${dueDay - todayDay} dias (dia ${dueDay})`;
+      } else {
+        dueText = `Vencimento dia ${dueDay}`;
+      }
 
-      const pct = (share * 100).toFixed(1);
-      legendHtml += `
-        <div class="cat-item-row">
-          <div class="cat-left">
-            <div class="cat-icon-badge" style="background: ${cat.color}22; color: ${cat.color}">
-              ${cat.icon}
-            </div>
-            <span class="cat-name">${cat.name}</span>
+      html += `
+        <div class="card-mini-row">
+          <div>
+            <div class="card-mini-title">💳 ${escapeHTML(c.name)}</div>
+            <div class="card-mini-sub">Limite: R$ ${this.formatCurrency(c.creditLimit)} • ${dueText}</div>
           </div>
-          <div class="cat-right">
-            <span class="cat-amount">R$ ${this.formatCurrency(cat.spent)}</span>
-            <span class="cat-percent">${pct}%</span>
+          <div class="card-mini-invoice">
+            Fatura: R$ ${this.formatCurrency(c.balance)}
           </div>
         </div>
       `;
     });
 
-    this.svgDonutChart.innerHTML = svgHtml;
-    this.categoryLegendList.innerHTML = legendHtml;
+    this.cardsMiniList.innerHTML = html;
   }
 
   renderTransactions() {
-    const list = this.store.state.transactions;
+    if (!this.transactionListContainer) return;
+
     let html = '';
+    const txs = this.store.state.transactions.slice(0, 10);
 
-    list.slice(0, 6).forEach(tx => {
-      const isOutflow = tx.direction === 'OUTFLOW';
-      const sign = isOutflow ? '-' : '+';
-      const amountClass = isOutflow ? 'outflow' : 'inflow';
-      
-      let tagRuleClass = 'tag-needs';
-      if (tx.budgetRule === 'WANTS_30') tagRuleClass = 'tag-wants';
-      if (tx.budgetRule === 'SAVINGS_20') tagRuleClass = 'tag-savings';
+    if (txs.length === 0) {
+      this.transactionListContainer.innerHTML = `
+        <div class="wealth-empty-state">
+          <div class="empty-icon">🛒</div>
+          <div class="empty-title">Nenhuma compra registrada ainda</div>
+          <p class="empty-desc">Clique no botão "+ Registrar Compra" para lançar compras manuais nos seus cartões ou débito.</p>
+        </div>
+      `;
+      return;
+    }
 
-      const dateStr = new Date(tx.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+    txs.forEach(tx => {
+      const isIncome = tx.direction === 'INFLOW' || tx.amount > 0;
+      const amountSign = isIncome ? '+ R$' : '- R$';
+      const amountClass = isIncome ? 'style="color: #00F090;"' : '';
+      const installmentLabel = (tx.installments && tx.installments > 1) ? ` (${tx.installments}x)` : '';
 
       html += `
-        <div class="tx-item">
-          <div class="tx-left">
-            <div class="tx-avatar">${tx.icon || '💳'}</div>
+        <div class="wealth-tx-item">
+          <div class="wealth-tx-left">
+            <div class="wealth-tx-icon-circle">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+            </div>
             <div>
-              <div class="tx-title">${tx.cleanMerchant || tx.description}</div>
-              <div class="tx-meta">
-                <span>${dateStr}</span> • <span>${tx.account}</span>
-                <span class="tx-tag-rule ${tagRuleClass}">${tx.categoryLabel || 'Geral'}</span>
-              </div>
+              <div class="wealth-tx-name">${escapeHTML(tx.description)}</div>
+              <div class="wealth-tx-meta">${escapeHTML(tx.account || 'Cartão')}${installmentLabel} • ${escapeHTML(tx.categoryLabel || 'COMPRA')}</div>
             </div>
           </div>
-          <div class="tx-amount ${amountClass}">
-            ${sign} R$ ${this.formatCurrency(Math.abs(tx.amount))}
+          <div class="wealth-tx-amount" ${amountClass}>
+            ${amountSign} ${this.formatCurrency(Math.abs(tx.amount))}
           </div>
         </div>
       `;
@@ -744,469 +840,607 @@ class AuraApp {
   }
 
   renderFuturo() {
-    this.futuroClosingAmount.textContent = this.formatCurrency(this.store.state.forecast.projectedClosingBalance);
-    this.safeDailyValue.textContent = `R$ ${this.formatCurrency(this.store.state.forecast.safeDailySpend)} / dia`;
-    this.sliderValPreview.textContent = `R$ ${this.formatCurrency(this.store.state.forecast.safeDailySpend)}`;
-    this.simulatorSlider.value = Math.round(this.store.state.forecast.safeDailySpend);
+    if (this.futuroClosingAmount) {
+      this.futuroClosingAmount.textContent = this.formatCurrency(this.store.state.forecast.projectedClosingBalance);
+    }
+    if (this.safeDailyValue) {
+      this.safeDailyValue.textContent = `R$ ${this.formatCurrency(this.store.state.forecast.safeDailySpend)} /`;
+    }
+    if (this.simulatorSlider) {
+      const safe = Math.round(this.store.state.forecast.safeDailySpend);
+      this.simulatorSlider.min = Math.max(10, Math.round(safe * 0.2));
+      this.simulatorSlider.max = Math.max(100, Math.round(safe * 2.5));
+      this.simulatorSlider.value = safe;
+    }
   }
 
   onSliderSimulate(val) {
-    const daily = parseFloat(val);
-    this.sliderValPreview.textContent = `R$ ${daily.toFixed(2)}`;
-    const days = this.store.state.forecast.daysRemaining;
-    const baseDaily = this.store.state.forecast.safeDailySpend;
-    const diff = (daily - baseDaily) * days;
-    const newClosing = this.store.state.forecast.projectedClosingBalance - diff;
+    const daily = parseFloat(val) || 0;
+    if (this.safeDailyValue) {
+      this.safeDailyValue.textContent = `R$ ${this.formatCurrency(daily)} /`;
+    }
+    const days = this.store.state.forecast.daysRemaining || getDaysRemainingInMonth();
+    const checkingBalance = this.store.state.accounts
+      .filter(a => a.type === 'CHECKING' || a.type === 'INVESTMENT')
+      .reduce((sum, a) => sum + (parseFloat(a.balance) || 0), 0);
+    const totalInvoices = this.store.state.cards.reduce((sum, c) => sum + (parseFloat(c.balance) || 0), 0);
+    const totalLiquid = checkingBalance - totalInvoices;
 
-    if (diff > 0) {
-      this.sliderSimulationResult.innerHTML = `Gastando R$ ${daily.toFixed(2)}/dia, seu saldo final cairá para <strong style="color: var(--accent-coral)">R$ ${this.formatCurrency(newClosing)}</strong> (-R$ ${this.formatCurrency(diff)}).`;
-    } else if (diff < 0) {
-      this.sliderSimulationResult.innerHTML = `Economizando e gastando R$ ${daily.toFixed(2)}/dia, você fechará com <strong style="color: var(--accent-emerald)">R$ ${this.formatCurrency(newClosing)}</strong> de sobra (+R$ ${this.formatCurrency(Math.abs(diff))})! 🚀`;
-    } else {
-      this.sliderSimulationResult.innerHTML = 'Impacto no saldo final: <strong>Sem alterações</strong>.';
+    const monthlyNet = parseFloat(this.store.state.user.monthlyNetIncome) || 0;
+    const inflow = this.store.state.forecast.inflowTotal || 0;
+    const pendingIncome = Math.max(0, monthlyNet - inflow);
+
+    const simulatedClosing = totalLiquid + pendingIncome - (daily * days);
+    if (this.futuroClosingAmount) {
+      this.futuroClosingAmount.textContent = this.formatCurrency(simulatedClosing);
     }
   }
 
-  renderLeaks() {
-    const leaks = this.store.state.leaks;
-    const annualTotal = leaks.reduce((acc, l) => acc + l.costAnnual, 0);
-    this.totalLeaksAnnual.textContent = `R$ ${this.formatCurrency(annualTotal)} / ano`;
-
-    let html = '';
-    leaks.forEach(l => {
-      html += `
-        <div class="leak-card">
-          <div class="leak-info">
-            <div class="leak-title">${l.title}</div>
-            <div class="leak-calc">Custa R$ ${this.formatCurrency(l.costMonthly)}/mês (${l.note})</div>
-          </div>
-          <div class="leak-right">
-            <div class="leak-cost-annual">- R$ ${this.formatCurrency(l.costAnnual)}/ano</div>
-            <button class="btn-plug-leak" onclick="app.plugLeak('${l.id}')">Plugue o Ralo! 🛑</button>
-          </div>
-        </div>
-      `;
-    });
-
-    if (leaks.length === 0) {
-      html = '<div style="text-align: center; color: var(--accent-emerald); padding: 12px; font-weight: 600;">Parabéns! Nenhum ralo financeiro ativo no momento. 🛡️</div>';
-    }
-
-    this.leakItemsList.innerHTML = html;
-  }
-
-  plugLeak(leakId) {
-    this.store.removeLeak(leakId);
-    this.renderLeaks();
-    this.renderFuturo();
-    this.showToast('Ralo plugado! O valor anualizado foi liberado para sua Reserva de Emergência.');
-  }
-
-  renderLimits() {
-    let html = '';
-    this.store.state.categories.forEach(cat => {
-      const pct = Math.min(((cat.spent / cat.limit) * 100), 100).toFixed(0);
-      let barColor = 'var(--accent-emerald)';
-      if (pct >= 90) barColor = 'var(--accent-coral)';
-      else if (pct >= 75) barColor = 'var(--accent-amber)';
-
-      html += `
-        <div class="limit-item">
-          <div class="limit-header">
-            <span class="limit-category">${cat.icon} ${cat.name}</span>
-            <span class="limit-amounts">R$ ${this.formatCurrency(cat.spent)} / R$ ${this.formatCurrency(cat.limit)} (${pct}%)</span>
-          </div>
-          <div class="progress-track">
-            <div class="progress-bar" style="width: ${pct}%; background: ${barColor}"></div>
-          </div>
-        </div>
-      `;
-    });
-
-    this.limitsListContainer.innerHTML = html;
-  }
-
-  renderGoals() {
-    let html = '';
-    this.store.state.goals.forEach(goal => {
-      const pct = Math.min(((goal.currentAmount / goal.targetAmount) * 100), 100).toFixed(0);
-      html += `
-        <div class="goal-card">
-          <div class="goal-top-row">
-            <div>
-              <span class="goal-name">${goal.icon} ${goal.title}</span>
-              <div class="goal-deadline">Meta para ${goal.deadline}</div>
-            </div>
-            <span class="badge-tag">${pct}% concluído</span>
-          </div>
-          <div class="goal-progress-wrap">
-            <div class="goal-amounts-row">
-              <span class="goal-current">R$ ${this.formatCurrency(goal.currentAmount)}</span>
-              <span class="goal-target">Alvo: R$ ${this.formatCurrency(goal.targetAmount)}</span>
-            </div>
-            <div class="progress-track">
-              <div class="progress-bar" style="width: ${pct}%; background: ${goal.color}"></div>
-            </div>
-          </div>
-          <button class="btn-deposit-goal" onclick="app.openGoalDepositModal('${goal.id}')">+ Guardar Dinheiro nesta Caixinha</button>
-        </div>
-      `;
-    });
-
-    this.goalsListContainer.innerHTML = html;
-  }
-
-  renderChallenges() {
-    let html = '';
-    this.store.state.challenges.forEach(ch => {
-      html += `
-        <div class="challenge-card">
-          <div class="ch-info">
-            <div class="ch-title">${ch.title}</div>
-            <div class="ch-sub">${ch.desc} • <strong>${ch.progressDays}</strong></div>
-          </div>
-          <button class="btn-claim-badge" onclick="app.claimBadge('${ch.id}')">Resgatar</button>
-        </div>
-      `;
-    });
-
-    this.challengesGrid.innerHTML = html;
-  }
-
-  claimBadge(chId) {
-    this.showToast('🎉 Conquista desbloqueada! +25 pontos adicionados ao seu Score de Saúde!');
-  }
-
-  renderDebtStrategy(type) {
-    const resultBox = document.getElementById('debtResultBox');
-    if (!resultBox) return;
-
-    if (type === 'avalanche') {
-      resultBox.innerHTML = `
-        <div style="font-size: 13px; color: var(--text-white); margin-bottom: 6px;">
-          <strong>Estratégia: Juros Decrescentes (Avalanche)</strong>
-        </div>
-        <p style="font-size: 11px; color: var(--text-secondary); line-height: 1.4; margin-bottom: 8px;">
-          Foco na fatura do Cartão (14% a.m.) antes do Empréstimo (4% a.m.).
-        </p>
-        <div style="display: flex; justify-content: space-between; font-size: 12px; background: rgba(0, 210, 255, 0.08); padding: 8px; border-radius: 6px;">
-          <span>Economia estimada em juros:</span>
-          <strong style="color: var(--accent-emerald)">R$ 3.840,00</strong>
-        </div>
-        <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">
-          Prazo total de quitação: <strong>11 meses (4 meses mais rápido)</strong>.
-        </div>
-      `;
-    } else {
-      resultBox.innerHTML = `
-        <div style="font-size: 13px; color: var(--text-white); margin-bottom: 6px;">
-          <strong>Estratégia: Menores Saldos Primeiro (Bola de Neve)</strong>
-        </div>
-        <p style="font-size: 11px; color: var(--text-secondary); line-height: 1.4; margin-bottom: 8px;">
-          Quitação da dívida de menor valor primeiro para vitórias psicológicas rápidas.
-        </p>
-        <div style="display: flex; justify-content: space-between; font-size: 12px; background: rgba(157, 78, 221, 0.08); padding: 8px; border-radius: 6px;">
-          <span>Economia estimada em juros:</span>
-          <strong style="color: var(--accent-cyan)">R$ 2.450,00</strong>
-        </div>
-        <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">
-          Prazo total de quitação: <strong>14 meses</strong>.
-        </div>
-      `;
+  renderProfile() {
+    const user = this.store.state.user;
+    if (this.profileDisplayName) this.profileDisplayName.textContent = user.name || 'Membro Aura';
+    if (this.profileRoleText) this.profileRoleText.textContent = user.role || 'MEMBRO AURA';
+    if (this.profileAvatarText) this.profileAvatarText.textContent = user.avatar || 'MA';
+    if (this.profileCardsSummary) {
+      const count = (this.store.state.cards || []).length;
+      this.profileCardsSummary.textContent = `${count} cartão(ões) de crédito cadastrado(s)`;
     }
   }
 
-  renderHealthScore() {
-    const score = 84;
-    this.topScoreVal.textContent = score;
-    this.mainHealthScore.textContent = score;
-    
-    // Animação de preenchimento do círculo SVG
-    // Circunferência de raio 42 = 2 * PI * 42 ≈ 263.89
-    const circumference = 2 * Math.PI * 42;
-    const offset = circumference - (circumference * score / 100);
-    this.scoreFillCircle.style.strokeDashoffset = offset;
-  }
+  populateCardSelects() {
+    const cards = this.store.state.cards || [];
+    const accounts = this.store.state.accounts || [];
 
-  // ===========================================================================
-  // SIMULADOR "POSSO COMPRAR?" & GEMINI IA
-  // ===========================================================================
-  handleCalculatePurchase() {
-    const itemName = document.getElementById('inputItemName').value.trim();
-    const itemAmount = parseFloat(document.getElementById('inputItemAmount').value);
-    const category = document.getElementById('selectItemCategory').value;
-    const paymentMethod = document.getElementById('selectPaymentMethod').value;
+    // Preenche select do modal de compra
+    if (this.txAccount) {
+      let options = '';
+      cards.forEach(c => {
+        const avail = Math.max(0, (c.creditLimit || 5000) - (c.balance || 0));
+        options += `<option value="${escapeHTML(c.name)}" data-type="CREDIT_CARD" data-id="${c.id}">💳 ${escapeHTML(c.name)} (Disp: R$ ${this.formatCurrency(avail)})</option>`;
+      });
 
-    if (!itemName || isNaN(itemAmount) || itemAmount <= 0) {
-      alert('Por favor, informe o nome do item e um valor válido.');
-      return;
+      accounts.forEach(a => {
+        options += `<option value="${escapeHTML(a.name)}" data-type="${a.type}" data-id="${a.id}">🏦 ${escapeHTML(a.name)} (Saldo: R$ ${this.formatCurrency(a.balance)})</option>`;
+      });
+
+      this.txAccount.innerHTML = options;
     }
 
-    const hourlyWage = this.store.state.user.hourlyWage; // R$ 53,12/h
-    const workHours = itemAmount / hourlyWage;
-    const hoursPart = Math.floor(workHours);
-    const minutesPart = Math.round((workHours - hoursPart) * 60);
-
-    const safeDaily = this.store.state.forecast.safeDailySpend;
-    const days = this.store.state.forecast.daysRemaining;
-    const totalRemainingSafe = safeDaily * days;
-
-    const shareOfBudget = Math.min(((itemAmount / totalRemainingSafe) * 100), 100).toFixed(1);
-    const impactOnDaily = (itemAmount / days).toFixed(2);
-    const newDaily = Math.max(0, (safeDaily - (itemAmount / days))).toFixed(2);
-
-    this.metricWorkHours.textContent = `${hoursPart}h ${minutesPart}min`;
-    this.metricBudgetShare.textContent = `${shareOfBudget}%`;
-    this.metricDailyImpact.textContent = `- R$ ${this.formatCurrency(parseFloat(impactOnDaily))}`;
-
-    this.purchaseResultCard.classList.remove('hidden', 'verdict-green', 'verdict-yellow', 'verdict-red');
-
-    let verdict = 'green';
-    let verdictLabel = '🟢 Aprovado com Folga';
-    let rationale = '';
-
-    if (shareOfBudget > 70 || itemAmount > totalRemainingSafe) {
-      verdict = 'red';
-      verdictLabel = '🔴 Risco Financeiro';
-      this.purchaseResultCard.classList.add('verdict-red');
-      rationale = `Comprar "${itemName}" por R$ ${this.formatCurrency(itemAmount)} custará **${hoursPart}h e ${minutesPart}min de trabalho líquido** e consumirá mais de 70% da sua folga de caixa restante. Seu gasto diário seguro despencará para R$ ${this.formatCurrency(parseFloat(newDaily))}/dia, aumentando o risco de entrar no rotativo do cartão ou atrasar sua meta de Reserva de Emergência. Recomendo adiar para o próximo mês ou aplicar a Regra dos 3 Dias.`;
-    } else if (shareOfBudget >= 30) {
-      verdict = 'yellow';
-      verdictLabel = '🟡 Requer Cautela';
-      this.purchaseResultCard.classList.add('verdict-yellow');
-      rationale = `"${itemName}" custa **${hoursPart}h e ${minutesPart}min de trabalho**. O valor consome ${shareOfBudget}% da sua folga no mês. Em pagamento parcelado ou esperando o fechamento da próxima fatura em 8 dias, o impacto no seu dia a dia fica suave (reduzindo de R$ ${this.formatCurrency(safeDaily)} para R$ ${this.formatCurrency(parseFloat(newDaily))}/dia). Se não for indispensável hoje, planeje a compra para a virada do ciclo.`;
-    } else {
-      verdict = 'green';
-      verdictLabel = '🟢 Compra Tranquila';
-      this.purchaseResultCard.classList.add('verdict-green');
-      rationale = `Excelente! Esse gasto de R$ ${this.formatCurrency(itemAmount)} consome apenas ${shareOfBudget}% da sua margem livre e representa ${hoursPart}h de trabalho. Ele não compromete nenhuma de suas caixinhas nem seus limites da regra 50/30/20. Pode comprar com tranquilidade!`;
-    }
-
-    this.verdictPill.textContent = verdictLabel;
-    this.rationaleText.innerHTML = rationale;
-  }
-
-  // ===========================================================================
-  // CHAT ASSISTANT
-  // ===========================================================================
-  sendQuickPrompt(promptText) {
-    this.chatInputText.value = promptText;
-    this.handleSendChatMessage();
-  }
-
-  handleSendChatMessage() {
-    const text = this.chatInputText.value.trim();
-    if (!text) return;
-
-    this.addChatMessage('user', text);
-    this.chatInputText.value = '';
-
-    // Efeito de "digitando..."
-    setTimeout(() => {
-      this.generateAIResponse(text);
-    }, 600);
-  }
-
-  addChatMessage(sender, message) {
-    const time = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    const isUser = sender === 'user';
-    const bubbleClass = isUser ? 'user-bubble' : 'ai-bubble';
-    const senderName = isUser ? 'Você' : 'FinAI';
-
-    const div = document.createElement('div');
-    div.className = `chat-bubble ${bubbleClass}`;
-    div.innerHTML = `
-      <div class="bubble-sender">${senderName}</div>
-      <div class="bubble-content">${message}</div>
-      <div class="bubble-time">${time}</div>
-    `;
-
-    this.chatMessagesContainer.appendChild(div);
-    this.chatMessagesContainer.scrollTop = this.chatMessagesContainer.scrollHeight;
-  }
-
-  async generateAIResponse(userQuery) {
-    const apiKey = this.store.state.user.geminiApiKey;
-    
-    // Se houver chave Gemini API configurada, tenta chamada direta
-    if (apiKey) {
-      try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{
-              parts: [{
-                text: `Você é o FinAI, assistente financeiro do app Aura Finance. Contexto da usuária: Mariana, Renda líquida R$ 8.500,00, Saldo em conta R$ 3.420,00, Saldo previsto de fechamento do mês R$ 1.245,50, Gasto diário seguro R$ 88,48/dia. Responda de forma curta, prática e empática em português à pergunta: "${userQuery}".`
-              }]
-            }]
-          })
-        });
-
-        const data = await response.json();
-        if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
-          this.addChatMessage('ai', data.candidates[0].content.parts[0].text);
-          return;
-        }
-      } catch (err) {
-        console.warn('Falha na API Gemini, usando motor comportamental local:', err);
+    // Preenche select do simulador FinAI
+    if (this.selectPurchaseCard) {
+      let options = '';
+      cards.forEach(c => {
+        options += `<option value="${escapeHTML(c.name)}" data-id="${c.id}">${escapeHTML(c.name)} (Limite R$ ${this.formatCurrency(c.creditLimit)})</option>`;
+      });
+      if (cards.length === 0) {
+        options = '<option value="">Nenhum cartão cadastrado</option>';
       }
+      this.selectPurchaseCard.innerHTML = options;
     }
-
-    // Motor Cognitivo Local Especializado em Finanças
-    const queryLower = userQuery.toLowerCase();
-    let reply = '';
-
-    if (queryLower.includes('jantar') || queryLower.includes('120') || queryLower.includes('restaurante')) {
-      reply = `Analisando seu Futurômetro: seu gasto diário seguro é de **R$ 88,48/dia**. Um jantar de R$ 120,00 ultrapassa a cota de hoje em R$ 31,52, mas você tem R$ 1.245,50 de superávit projetado no fim do mês! Se compensar economizando R$ 15 amanhã e depois, sua meta continuará 100% no verde. Bom apetite! 🍽️`;
-    } else if (queryLower.includes('reserva') || queryLower.includes('emergência') || queryLower.includes('acelerar')) {
-      reply = `Você já atingiu **R$ 18.500 de R$ 30.000 (62%)** da sua Reserva! Detectamos R$ 4.280/ano em ralos financeiros (como a academia ociosa e assinaturas esquecidas). Se você cancelar a academia e realocar esses R$ 149,90/mês para a caixinha, você alcançará os R$ 30.000 em **novembro de 2026** (2 meses antes do prazo planejado)! 🚀`;
-    } else if (queryLower.includes('assinatura') || queryLower.includes('cancelar') || queryLower.includes('ralo')) {
-      reply = `Identifiquei 3 assinaturas que você pode revisar agora: 1) **Smart Fit** (R$ 149,90/mês sem check-in há 42 dias); 2) **Streaming de Vídeo Secundário** (R$ 55,90/mês com 1h de uso). Juntas, elas liberam **R$ 205,80 todo mês** na sua conta! Deseja que eu marque para cancelamento?`;
-    } else {
-      reply = `Com base nas suas 3 contas conectadas via Open Finance, você está com **84/100 no Score de Saúde Financeira**. Seus gastos essenciais (50%) estão em 48,2% e você tem R$ 88,48 de gasto livre por dia até o dia 31. Como mais posso te orientar hoje?`;
-    }
-
-    this.addChatMessage('ai', reply);
   }
 
   // ===========================================================================
-  // OPEN FINANCE SIMULATION
-  // ===========================================================================
-  triggerOpenFinanceSync() {
-    this.btnOpenFinanceSync.classList.add('syncing');
-    this.phoneDynamicIsland.classList.add('expanded');
-    this.islandNotification.style.display = 'flex';
-    document.getElementById('islandText').textContent = 'Open Finance: Conciliando...';
-
-    setTimeout(() => {
-      // Simula uma nova transação importada automaticamente do cartão
-      const newTx = {
-        id: 'tx_auto_' + Date.now(),
-        description: 'Padaria Bella Paulista',
-        cleanMerchant: 'Bella Paulista',
-        amount: -28.50,
-        direction: 'OUTFLOW',
-        category: 'needs_supermarket',
-        categoryLabel: 'Alimentação',
-        budgetRule: 'NEEDS_50',
-        account: 'Nubank',
-        method: 'DEBIT_CARD',
-        date: new Date().toISOString(),
-        icon: '🥐'
-      };
-
-      this.store.addTransaction(newTx);
-      this.renderAll();
-
-      this.btnOpenFinanceSync.classList.remove('syncing');
-      document.getElementById('islandText').textContent = 'Conciliado: 1 nova transação';
-      this.showToast('Open Finance sincronizado com sucesso! (Nubank, Itaú e Inter atualizados)');
-
-      setTimeout(() => {
-        this.phoneDynamicIsland.classList.remove('expanded');
-        this.islandNotification.style.display = 'none';
-      }, 3500);
-    }, 1800);
-  }
-
-  // ===========================================================================
-  // MODAL ACTIONS
+  // MODAL NOVA COMPRA (LANÇAMENTO MANUAL DIRETO)
   // ===========================================================================
   openTransactionModal() {
-    this.modalTransaction.classList.remove('hidden');
-    document.getElementById('txDescription').focus();
+    if (this.modalTransaction) {
+      this.populateCardSelects();
+      if (this.txDate) this.txDate.valueAsDate = new Date();
+      this.modalTransaction.classList.remove('hidden');
+      this.txDescription?.focus();
+    }
   }
 
   closeTransactionModal() {
-    this.modalTransaction.classList.add('hidden');
-    document.getElementById('formTransaction').reset();
+    if (this.modalTransaction) {
+      this.modalTransaction.classList.add('hidden');
+      this.txDescription.value = '';
+      this.txAmount.value = '';
+      if (this.planSingle) this.planSingle.checked = true;
+      if (this.groupInstallmentCount) this.groupInstallmentCount.classList.add('hidden');
+    }
   }
 
-  handleSaveTransaction() {
-    const desc = document.getElementById('txDescription').value.trim();
-    const amountVal = parseFloat(document.getElementById('txAmount').value);
-    const category = document.getElementById('txCategory').value;
-    const account = document.getElementById('txAccount').value;
-    const method = document.getElementById('txPaymentMethod').value;
-    const isIncome = this.btnTypeIncome.classList.contains('active-income');
+  updateInstallmentPreview() {
+    const val = parseFloat(this.txAmount?.value) || 0;
+    const installments = parseInt(this.txInstallments?.value) || 1;
+    if (val > 0 && installments > 1) {
+      const part = val / installments;
+      if (this.installmentCalcPreview) {
+        this.installmentCalcPreview.textContent = `${installments}x de R$ ${this.formatCurrency(part)}`;
+      }
+    }
+  }
+
+  async handleSaveTransaction() {
+    const desc = (this.txDescription?.value || '').trim();
+    const amountVal = parseFloat(this.txAmount?.value);
+    const category = this.txCategory?.value || 'other';
+    const accountName = this.txAccount?.value || 'Cartão';
+    const selectedOption = this.txAccount?.selectedOptions[0];
+    const accountType = selectedOption?.getAttribute('data-type') || 'CREDIT_CARD';
+    const accountId = selectedOption?.getAttribute('data-id') || null;
+
+    const isInstallment = this.planInstallment?.checked;
+    const installments = isInstallment ? (parseInt(this.txInstallments?.value) || 1) : 1;
 
     if (!desc || isNaN(amountVal) || amountVal <= 0) {
-      alert('Preencha a descrição e um valor positivo.');
+      alert('Por favor, informe o que comprou e o valor válido.');
       return;
     }
 
-    const direction = isIncome ? 'INFLOW' : 'OUTFLOW';
-    const amount = isIncome ? amountVal : -amountVal;
-
-    let budgetRule = 'NEEDS_50';
-    let icon = '🏷️';
-    if (category.startsWith('wants_')) { budgetRule = 'WANTS_30'; icon = '🛍️'; }
-    if (category.startsWith('savings_')) { budgetRule = 'SAVINGS_20'; icon = '📈'; }
-    if (isIncome) { budgetRule = 'INFLOW'; icon = '💵'; }
-
     const newTx = {
-      id: 'tx_user_' + Date.now(),
+      id: 'tx_' + Date.now(),
       description: desc,
       cleanMerchant: desc,
-      amount: amount,
-      direction: direction,
+      amount: -amountVal,
+      direction: 'OUTFLOW',
       category: category,
-      categoryLabel: isIncome ? 'Receita' : 'Despesa',
-      budgetRule: budgetRule,
-      account: account,
-      method: method,
-      date: new Date().toISOString(),
-      icon: icon
+      categoryLabel: category.replace('needs_', '').replace('wants_', '').toUpperCase(),
+      account: accountName,
+      accountType: accountType,
+      cardId: accountId,
+      installments: installments,
+      date: this.txDate?.value || new Date().toISOString()
     };
 
     this.store.addTransaction(newTx);
     this.closeTransactionModal();
     this.renderAll();
-    this.showToast('Transação salva com sucesso!');
-  }
 
-  openGoalDepositModal(goalId) {
-    this.currentDepositGoalId = goalId;
-    const goal = this.store.state.goals.find(g => g.id === goalId);
-    if (goal) {
-      this.depositGoalTitle.textContent = `${goal.icon} ${goal.title}`;
-      this.depositGoalCurrent.textContent = `Atual: R$ ${this.formatCurrency(goal.currentAmount)} de R$ ${this.formatCurrency(goal.targetAmount)}`;
-      this.goalDepositAmount.value = '';
-      this.modalGoalDeposit.classList.remove('hidden');
-      this.goalDepositAmount.focus();
+    // Notificação visual na ilha dinâmica
+    if (this.phoneDynamicIsland) this.phoneDynamicIsland.classList.add('expanded');
+    if (this.islandNotification) this.islandNotification.style.display = 'flex';
+    if (this.islandText) this.islandText.textContent = `Compra: R$ ${this.formatCurrency(amountVal)} no ${accountName}`;
+
+    setTimeout(() => {
+      if (this.phoneDynamicIsland) this.phoneDynamicIsland.classList.remove('expanded');
+      if (this.islandNotification) this.islandNotification.style.display = 'none';
+    }, 2800);
+
+    this.showToast(`Compra de R$ ${this.formatCurrency(amountVal)} registrada com sucesso!`);
+
+    // Persistência no Supabase
+    if (this.supabase && this.currentUser) {
+      try {
+        await this.supabase.from('transactions').insert({
+          user_id: this.currentUser.id,
+          account_name: accountName,
+          description: desc,
+          amount: -amountVal,
+          direction: 'OUTFLOW',
+          category: category,
+          payment_method: accountType === 'CREDIT_CARD' ? 'CREDIT_CARD' : 'DEBIT_CARD'
+        });
+
+        // Se for cartão, atualiza a fatura no banco
+        if (accountType === 'CREDIT_CARD' && accountId) {
+          const targetCard = this.store.state.cards.find(c => c.id === accountId);
+          if (targetCard) {
+            await this.supabase.from('accounts').update({ balance: targetCard.balance }).eq('id', accountId);
+          }
+        }
+      } catch (err) {
+        console.error('Erro salvando no Supabase:', err);
+      }
     }
   }
 
-  closeGoalModal() {
-    this.modalGoalDeposit.classList.add('hidden');
-    this.currentDepositGoalId = null;
-  }
+  // ===========================================================================
+  // FINAI: SIMULADOR DE PARCELAMENTO SAUDÁVEL
+  // "Quero comprar algo, mas parcelo em quantas vezes?? Esse valor é saudável pra mim??"
+  // ===========================================================================
+  handleCalculatePurchase() {
+    const itemName = (this.inputItemName?.value || '').trim();
+    const itemAmount = parseFloat(this.inputItemAmount?.value);
 
-  handleConfirmGoalDeposit() {
-    const val = parseFloat(this.goalDepositAmount.value);
-    if (isNaN(val) || val <= 0) {
-      alert('Informe um valor de aporte válido.');
+    if (!itemName || isNaN(itemAmount) || itemAmount <= 0) {
+      alert('Por favor, informe o que deseja comprar e o valor total.');
       return;
     }
 
-    this.store.depositToGoal(this.currentDepositGoalId, val);
-    this.closeGoalModal();
-    this.renderAll();
-    this.showToast(`Aporte de R$ ${this.formatCurrency(val)} guardado com sucesso na Caixinha! 🚀`);
+    const netIncome = this.store.state.user.monthlyNetIncome || 0;
+    const workHoursPerMonth = this.store.state.user.workHoursPerMonth || 160;
+    const hourlyWage = (netIncome > 0 && workHoursPerMonth > 0) ? (netIncome / workHoursPerMonth) : 0;
+
+    let workHoursText = 'Defina sua renda';
+    let hoursPart = 0;
+    let minutesPart = 0;
+    if (hourlyWage > 0) {
+      const workHours = itemAmount / hourlyWage;
+      hoursPart = Math.floor(workHours);
+      minutesPart = Math.round((workHours - hoursPart) * 60);
+      workHoursText = `${hoursPart}h ${minutesPart}min`;
+    }
+
+    const safeDaily = this.store.state.forecast.safeDailySpend || 0;
+    const days = this.store.state.forecast.daysRemaining || getDaysRemainingInMonth();
+    const remainingMargin = safeDaily * days;
+
+    // Cartão selecionado
+    const cardName = this.selectPurchaseCard?.value || 'Cartão';
+    const targetCard = (this.store.state.cards || []).find(c => c.name === cardName);
+    const cardLimit = targetCard ? (targetCard.creditLimit || 5000) : 5000;
+    const cardInvoice = targetCard ? (targetCard.balance || 0) : 0;
+    const limitAvailable = Math.max(0, cardLimit - cardInvoice);
+
+    const limitImpactPct = cardLimit > 0 ? ((itemAmount / cardLimit) * 100).toFixed(1) : 0;
+
+    if (this.metricWorkHours) this.metricWorkHours.textContent = workHoursText;
+    if (this.metricLimitImpact) this.metricLimitImpact.textContent = `${limitImpactPct}%`;
+
+    const impactOnDaily = (itemAmount / days).toFixed(2);
+    const newDaily = Math.max(0, safeDaily - (itemAmount / days)).toFixed(2);
+    if (this.metricDailyImpact) this.metricDailyImpact.textContent = `R$ ${this.formatCurrency(parseFloat(newDaily))}`;
+
+    // Gera tabela comparativa de 1x até 12x
+    const optionsToSimulate = [1, 2, 3, 4, 6, 8, 10, 12];
+    let recommendedCount = 1;
+    let recHighlight = '';
+    let recReason = '';
+    let verdictClass = 'verdict-green';
+    let verdictText = '🟢 Compra 100% Saudável';
+
+    // Heurística de recomendação inteligente:
+    // Se a compra for pequena (menor que 2 dias de gasto seguro ou < R$ 150): prefira 1x ou até 2x
+    if (itemAmount <= 150 || (safeDaily > 0 && itemAmount <= safeDaily * 2)) {
+      recommendedCount = 1;
+      verdictClass = 'verdict-green';
+      verdictText = '🟢 Compra Saudável';
+      recHighlight = `Pague em 1x à vista (R$ ${this.formatCurrency(itemAmount)})`;
+      recReason = `O valor de R$ ${this.formatCurrency(itemAmount)} é baixo em relação à sua renda e cabe tranquilamente no saldo à vista. Se a loja oferecer desconto no PIX, aproveite!`;
+    } else {
+      // Procura o menor número de parcelas onde a parcela consuma menos de 10% da renda líquida
+      let found = false;
+      for (const n of optionsToSimulate) {
+        const part = itemAmount / n;
+        const shareOfIncome = netIncome > 0 ? (part / netIncome) : 0;
+        if (shareOfIncome <= 0.08 || part <= (safeDaily * 3)) {
+          recommendedCount = n;
+          found = true;
+          break;
+        }
+      }
+      if (!found) recommendedCount = 10;
+
+      const recPart = itemAmount / recommendedCount;
+      if (itemAmount > limitAvailable) {
+        verdictClass = 'verdict-red';
+        verdictText = '🔴 Risco de Estouro de Limite';
+        recHighlight = `Atenção: Limite insuficiente no ${cardName}`;
+        recReason = `Esta compra de R$ ${this.formatCurrency(itemAmount)} ultrapassa o limite disponível atual de R$ ${this.formatCurrency(limitAvailable)}. Reduza o valor ou utilize outro cartão.`;
+      } else if (netIncome > 0 && itemAmount > (netIncome * 0.5)) {
+        verdictClass = 'verdict-yellow';
+        verdictText = '🟡 Requer Atenção';
+        recHighlight = `Parcele em até ${recommendedCount}x de R$ ${this.formatCurrency(recPart)}`;
+        recReason = `Essa compra compromete parte expressiva da sua renda. Em ${recommendedCount}x sem juros, o impacto mensal será de apenas R$ ${this.formatCurrency(recPart)}/mês, preservando suas próximas faturas.`;
+      } else {
+        verdictClass = 'verdict-green';
+        verdictText = '🟢 Parcelamento Saudável';
+        recHighlight = `Parcele em até ${recommendedCount}x de R$ ${this.formatCurrency(recPart)}`;
+        recReason = `Diluir em ${recommendedCount}x sem juros mantém seu gasto diário seguro no verde sem sufocar o vencimento do cartão dia ${targetCard?.dueDay || 15}.`;
+      }
+    }
+
+    if (this.aiRecHighlightText) this.aiRecHighlightText.textContent = recHighlight;
+    if (this.aiRecReasonText) this.aiRecReasonText.textContent = recReason;
+
+    // Renderiza a tabela de simulação
+    let tableHtml = '';
+    optionsToSimulate.forEach(n => {
+      const partVal = itemAmount / n;
+      const shareOfMargin = remainingMargin > 0 ? ((partVal / remainingMargin) * 100).toFixed(0) : 0;
+      const isRec = n === recommendedCount;
+
+      let badgeClass = 'healthy';
+      let badgeLabel = 'Saudável';
+      if (shareOfMargin > 30) {
+        badgeClass = 'danger';
+        badgeLabel = 'Pesado';
+      } else if (shareOfMargin > 15) {
+        badgeClass = 'caution';
+        badgeLabel = 'Moderado';
+      }
+
+      tableHtml += `
+        <div class="sim-row ${isRec ? 'recommended' : ''}">
+          <div class="sim-left">
+            ${n}x de R$ ${this.formatCurrency(partVal)} ${isRec ? '⭐ <strong>Ideal</strong>' : ''}
+          </div>
+          <div class="sim-right">
+            <span class="sim-share">${shareOfMargin}% da margem</span>
+            <span class="sim-badge ${badgeClass}">${badgeLabel}</span>
+          </div>
+        </div>
+      `;
+    });
+
+    if (this.installmentsSimTable) {
+      this.installmentsSimTable.innerHTML = tableHtml;
+    }
+
+    // Rationale comportamental
+    const cleanItemName = escapeHTML(itemName);
+    let rationale = `A compra de "<strong>${cleanItemName}</strong>" (R$ ${this.formatCurrency(itemAmount)}) equivale a <strong>${hoursPart}h e ${minutesPart}min de esforço</strong> do seu trabalho. `;
+    if (recommendedCount > 1) {
+      rationale += `Optando por <strong>${recommendedCount} parcelas de R$ ${this.formatCurrency(itemAmount / recommendedCount)}</strong>, sua fatura com vencimento em ${targetCard?.dueDay || 15} permanecerá dentro do limite e seu caixa diário não sofrerá aperto repentino.`;
+    } else {
+      rationale += `Como o valor é saudável para o seu padrão mensal, quitar à vista elimina dívidas futuras e mantém sua mente livre.`;
+    }
+
+    if (this.rationaleText) this.rationaleText.innerHTML = rationale;
+    if (this.verdictPill) {
+      this.verdictPill.className = 'verdict-pill ' + verdictClass;
+      this.verdictPill.textContent = verdictText;
+    }
+
+    if (this.purchaseResultCard) {
+      this.purchaseResultCard.classList.remove('hidden');
+    }
   }
 
+  // ===========================================================================
+  // ONBOARDING WIZARD (3 ETAPAS: RENDA, CARTÕES & LIMITES, SALDOS)
+  // ===========================================================================
+  openOnboardingModal(initialStep = 1) {
+    if (!this.modalOnboarding) return;
+    this.goToOnboardingStep(initialStep);
+
+    // Preenche etapa 1
+    const user = this.store.state.user;
+    if (this.obUserName) this.obUserName.value = user.name || '';
+    if (this.obNetIncome) this.obNetIncome.value = user.monthlyNetIncome || '';
+    if (this.obSalaryDay) this.obSalaryDay.value = user.salaryDay || 5;
+    if (this.obWorkHours) this.obWorkHours.value = user.workHoursPerMonth || 160;
+    if (this.obFixedExpensesDay) this.obFixedExpensesDay.value = user.fixedExpensesDay || 10;
+
+    // Preenche etapa 2: Cartões
+    this.renderOnboardingCardItems();
+
+    // Preenche etapa 3: Saldos
+    const checking = this.store.state.accounts.find(a => a.type === 'CHECKING');
+    const invest = this.store.state.accounts.find(a => a.type === 'INVESTMENT');
+    if (this.obCheckingBalance) this.obCheckingBalance.value = checking ? checking.balance : '';
+    if (this.obInvestmentsBalance) this.obInvestmentsBalance.value = invest ? invest.balance : '';
+
+    this.modalOnboarding.classList.remove('hidden');
+  }
+
+  closeOnboardingModal() {
+    if (this.modalOnboarding) {
+      this.modalOnboarding.classList.add('hidden');
+    }
+  }
+
+  goToOnboardingStep(step) {
+    this.currentOnboardingStep = step;
+    if (this.onboardingStep1) this.onboardingStep1.classList.toggle('hidden', step !== 1);
+    if (this.onboardingStep2) this.onboardingStep2.classList.toggle('hidden', step !== 2);
+    if (this.onboardingStep3) this.onboardingStep3.classList.toggle('hidden', step !== 3);
+
+    if (this.stepPill1) {
+      this.stepPill1.className = step === 1 ? 'step-indicator active' : (step > 1 ? 'step-indicator done' : 'step-indicator');
+    }
+    if (this.stepPill2) {
+      this.stepPill2.className = step === 2 ? 'step-indicator active' : (step > 2 ? 'step-indicator done' : 'step-indicator');
+    }
+    if (this.stepPill3) {
+      this.stepPill3.className = step === 3 ? 'step-indicator active' : 'step-indicator';
+    }
+
+    if (this.onboardingModalSub) {
+      const titles = ['', 'Etapa 1 de 3: Renda & Datas', 'Etapa 2 de 3: Cartões, Limites & Vencimentos', 'Etapa 3 de 3: Saldos Bancários'];
+      this.onboardingModalSub.textContent = titles[step] || '';
+    }
+  }
+
+  renderOnboardingCardItems() {
+    if (!this.obCardsContainer) return;
+    const cards = this.store.state.cards || [];
+    let html = '';
+
+    cards.forEach((c, idx) => {
+      html += `
+        <div class="ob-card-item" data-index="${idx}">
+          <div class="ob-card-item-header">
+            <span>💳 Cartão #${idx + 1}</span>
+            ${cards.length > 1 ? `<button type="button" class="btn-remove-card-item" onclick="app.removeCardItemRow(${idx})" title="Remover Cartão">&times;</button>` : ''}
+          </div>
+          <div class="input-group">
+            <label>Nome do Cartão (ex: Nubank, Itaú, Inter)</label>
+            <input type="text" class="card-input-name wealth-input" value="${escapeHTML(c.name)}" placeholder="Ex: Nubank Roxinho" required>
+          </div>
+          <div class="input-row-grid">
+            <div class="input-group">
+              <label>Limite Total (R$)</label>
+              <input type="number" class="card-input-limit wealth-input" value="${c.creditLimit || ''}" placeholder="Ex: 5000" step="50" required>
+            </div>
+            <div class="input-group">
+              <label>Fatura Atual (R$)</label>
+              <input type="number" class="card-input-balance wealth-input" value="${c.balance || ''}" placeholder="0,00" step="10">
+            </div>
+          </div>
+          <div class="input-row-grid">
+            <div class="input-group">
+              <label>Dia do Fechamento</label>
+              <input type="number" class="card-input-closing wealth-input" value="${c.closingDay || 8}" min="1" max="31">
+            </div>
+            <div class="input-group">
+              <label>Dia do Vencimento</label>
+              <input type="number" class="card-input-due wealth-input" value="${c.dueDay || 15}" min="1" max="31">
+            </div>
+          </div>
+        </div>
+      `;
+    });
+
+    this.obCardsContainer.innerHTML = html;
+  }
+
+  addCardItemRow() {
+    const cards = this.store.state.cards || [];
+    cards.push({
+      id: 'card_' + Date.now(),
+      name: `Novo Cartão ${cards.length + 1}`,
+      creditLimit: 3000.00,
+      balance: 0.00,
+      closingDay: 8,
+      dueDay: 15
+    });
+    this.renderOnboardingCardItems();
+  }
+
+  removeCardItemRow(idx) {
+    const cards = this.store.state.cards || [];
+    if (cards.length > 1) {
+      cards.splice(idx, 1);
+      this.renderOnboardingCardItems();
+    }
+  }
+
+  async saveOnboardingData() {
+    // 1. Coleta dados da etapa 1
+    const name = (this.obUserName?.value || '').trim() || 'Meu Perfil';
+    const netIncome = parseFloat(this.obNetIncome?.value) || 0;
+    const salaryDay = parseInt(this.obSalaryDay?.value) || 5;
+    const workHours = parseFloat(this.obWorkHours?.value) || 160;
+    const fixedDay = parseInt(this.obFixedExpensesDay?.value) || 10;
+    const wage = workHours > 0 ? parseFloat((netIncome / workHours).toFixed(2)) : 0;
+
+    const parts = name.split(' ').filter(p => p.length > 0);
+    const initials = parts.length > 1
+      ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+      : name.substring(0, 2).toUpperCase();
+
+    this.store.state.user.name = name;
+    this.store.state.user.avatar = initials;
+    this.store.state.user.monthlyNetIncome = netIncome;
+    this.store.state.user.salaryDay = salaryDay;
+    this.store.state.user.fixedExpensesDay = fixedDay;
+    this.store.state.user.workHoursPerMonth = workHours;
+    this.store.state.user.hourlyWage = wage;
+
+    // 2. Coleta dados da etapa 2 (Cartões)
+    const cardElements = document.querySelectorAll('.ob-card-item');
+    const updatedCards = [];
+
+    cardElements.forEach((el, index) => {
+      const cardName = el.querySelector('.card-input-name')?.value.trim() || `Cartão ${index + 1}`;
+      const limit = parseFloat(el.querySelector('.card-input-limit')?.value) || 1000;
+      const invoice = parseFloat(el.querySelector('.card-input-balance')?.value) || 0;
+      const closing = parseInt(el.querySelector('.card-input-closing')?.value) || 8;
+      const due = parseInt(el.querySelector('.card-input-due')?.value) || 15;
+
+      updatedCards.push({
+        id: this.store.state.cards[index]?.id || ('card_' + Date.now() + '_' + index),
+        name: cardName,
+        creditLimit: limit,
+        balance: invoice,
+        closingDay: closing,
+        dueDay: due
+      });
+    });
+
+    this.store.state.cards = updatedCards;
+
+    // 3. Coleta dados da etapa 3 (Saldos)
+    const checkingVal = parseFloat(this.obCheckingBalance?.value) || 0;
+    const investVal = parseFloat(this.obInvestmentsBalance?.value) || 0;
+
+    let checkingAcc = this.store.state.accounts.find(a => a.type === 'CHECKING');
+    if (!checkingAcc) {
+      checkingAcc = { id: 'acc_checking', name: 'Conta Corrente', type: 'CHECKING', balance: checkingVal, dotClass: 'nu' };
+      this.store.state.accounts.push(checkingAcc);
+    } else {
+      checkingAcc.balance = checkingVal;
+    }
+
+    let investAcc = this.store.state.accounts.find(a => a.type === 'INVESTMENT');
+    if (!investAcc) {
+      investAcc = { id: 'acc_invest', name: 'Investimentos & Poupança', type: 'INVESTMENT', balance: investVal, dotClass: 'inter' };
+      this.store.state.accounts.push(investAcc);
+    } else {
+      investAcc.balance = investVal;
+    }
+
+    this.store.recalculateForecast();
+    this.store.persist();
+    this.closeOnboardingModal();
+    this.renderAll();
+    this.showToast('Configuração salva com sucesso! 🚀');
+
+    // Sincronização com Supabase
+    if (this.supabase && this.currentUser) {
+      try {
+        await this.supabase.from('profiles').upsert({
+          id: this.currentUser.id,
+          name: name,
+          monthly_net_income: netIncome,
+          hourly_wage: wage
+        });
+
+        // Atualiza conta corrente
+        await this.supabase.from('accounts').upsert({
+          user_id: this.currentUser.id,
+          name: 'Conta Corrente',
+          type: 'CHECKING',
+          balance: checkingVal
+        });
+
+        // Atualiza cartões de crédito
+        for (const c of updatedCards) {
+          await this.supabase.from('accounts').upsert({
+            user_id: this.currentUser.id,
+            name: c.name,
+            type: 'CREDIT_CARD',
+            balance: c.balance
+          });
+        }
+      } catch (e) {
+        console.error('Erro salvando onboarding no Supabase:', e);
+      }
+    }
+  }
+
+  // ===========================================================================
+  // RESET / LIMPEZA DE DADOS
+  // ===========================================================================
+  async clearTestDataAndReset() {
+    if (!confirm('Deseja limpar todos os dados de teste e configurar seus cartões e saldos reais do zero?')) {
+      return;
+    }
+
+    if (this.supabase && this.currentUser) {
+      try {
+        await this.supabase.from('transactions').delete().eq('user_id', this.currentUser.id);
+        await this.supabase.from('accounts').update({ balance: 0.00 }).eq('user_id', this.currentUser.id);
+      } catch (e) {
+        console.error('Erro limpando dados no Supabase:', e);
+      }
+    }
+
+    this.store.reset();
+    localStorage.removeItem('aura_wealth_state');
+
+    this.renderAll();
+    this.showToast('Dados de teste removidos! Vamos configurar seus cartões reais.');
+    this.openOnboardingModal(1);
+  }
+
+  // ===========================================================================
+  // AI CONFIG MODAL
+  // ===========================================================================
   openConfigModal() {
-    this.inputApiKey.value = this.store.state.user.geminiApiKey || '';
-    this.modalConfigAI.classList.remove('hidden');
+    if (this.inputApiKey) this.inputApiKey.value = this.store.state.user.geminiApiKey || '';
+    if (this.modalConfigAI) this.modalConfigAI.classList.remove('hidden');
   }
 
   closeConfigModal() {
-    this.modalConfigAI.classList.add('hidden');
+    if (this.modalConfigAI) this.modalConfigAI.classList.add('hidden');
   }
 
   saveApiKey() {
-    const key = this.inputApiKey.value.trim();
+    const key = (this.inputApiKey?.value || '').trim();
     this.store.state.user.geminiApiKey = key;
     this.store.persist();
     this.closeConfigModal();
@@ -1215,108 +1449,24 @@ class AuraApp {
 
   clearApiKey() {
     this.store.state.user.geminiApiKey = '';
-    this.inputApiKey.value = '';
+    if (this.inputApiKey) this.inputApiKey.value = '';
     this.store.persist();
     this.closeConfigModal();
-    this.showToast('Chave removida. Usando motor comportamental local.');
+    this.showToast('Chave removida.');
   }
 
   // ===========================================================================
-  // PROFILE & FINANCIAL DATA EDIT MODAL
-  // ===========================================================================
-  openEditProfileModal() {
-    if (!this.modalEditProfile) return;
-    const user = this.store.state.user;
-    this.editUserName.value = user.name || '';
-    this.editNetIncome.value = user.monthlyNetIncome || 8500;
-    this.editGrossIncome.value = user.monthlyGrossIncome || 11200;
-    this.editWorkHours.value = user.workHoursPerMonth || 160;
-
-    const wage = user.workHoursPerMonth > 0 ? (user.monthlyNetIncome / user.workHoursPerMonth) : 53.12;
-    this.calcHourlyPreview.value = `R$ ${this.formatCurrency(parseFloat(wage.toFixed(2)))} / h`;
-
-    const checkingAcc = this.store.state.accounts.find(a => a.type === 'CHECKING');
-    const cardAcc = this.store.state.accounts.find(a => a.type === 'CREDIT_CARD');
-    const investAcc = this.store.state.accounts.find(a => a.type === 'INVESTMENT');
-
-    this.editCheckingBalance.value = checkingAcc ? checkingAcc.balance : 0;
-    this.editCardInvoice.value = cardAcc ? Math.abs(cardAcc.balance) : 0;
-    this.editInvestments.value = investAcc ? investAcc.balance : 0;
-    this.checkClearDemoTransactions.checked = false;
-
-    this.modalEditProfile.classList.remove('hidden');
-    this.editUserName.focus();
-  }
-
-  closeEditProfileModal() {
-    if (this.modalEditProfile) {
-      this.modalEditProfile.classList.add('hidden');
-    }
-  }
-
-  handleSaveProfileData() {
-    const name = this.editUserName.value.trim() || 'Usuário';
-    const net = parseFloat(this.editNetIncome.value) || 0;
-    const gross = parseFloat(this.editGrossIncome.value) || net;
-    const hours = parseFloat(this.editWorkHours.value) || 160;
-    const checkingBal = parseFloat(this.editCheckingBalance.value) || 0;
-    const cardInv = parseFloat(this.editCardInvoice.value) || 0;
-    const investBal = parseFloat(this.editInvestments.value) || 0;
-
-    if (net <= 0) {
-      alert('Por favor, informe uma renda líquida válida.');
-      return;
-    }
-
-    const wage = parseFloat((net / hours).toFixed(2));
-
-    // Gera iniciais para o avatar
-    const parts = name.split(' ').filter(p => p.length > 0);
-    const initials = parts.length > 1 ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase() : name.substring(0, 2).toUpperCase();
-
-    // Atualiza dados no estado
-    this.store.state.user.name = name;
-    this.store.state.user.avatar = initials;
-    this.store.state.user.monthlyNetIncome = net;
-    this.store.state.user.monthlyGrossIncome = gross;
-    this.store.state.user.workHoursPerMonth = hours;
-    this.store.state.user.hourlyWage = wage;
-
-    // Atualiza saldos das contas
-    const checkingAcc = this.store.state.accounts.find(a => a.type === 'CHECKING');
-    if (checkingAcc) checkingAcc.balance = checkingBal;
-
-    const cardAcc = this.store.state.accounts.find(a => a.type === 'CREDIT_CARD');
-    if (cardAcc) cardAcc.balance = -Math.abs(cardInv);
-
-    const investAcc = this.store.state.accounts.find(a => a.type === 'INVESTMENT');
-    if (investAcc) investAcc.balance = investBal;
-
-    // Se o usuário solicitou zerar as transações demo
-    if (this.checkClearDemoTransactions && this.checkClearDemoTransactions.checked) {
-      this.store.state.transactions = [];
-      this.store.state.categories.forEach(c => { c.spent = 0; });
-    }
-
-    this.store.recalculateForecast();
-    this.store.persist();
-    this.closeEditProfileModal();
-    this.renderAll();
-    this.showToast(`Dados atualizados com sucesso, ${name.split(' ')[0]}! 🚀`);
-  }
-
-  // ===========================================================================
-  // UTILITIES & VIEW SWITCHERS
+  // NAVIGATION & VIEW SWITCHERS
   // ===========================================================================
   switchViewMode(mode) {
     if (mode === 'desktop') {
-      this.viewportWrapper.className = 'app-viewport-wrapper mode-desktop';
-      this.btnViewDesktop.classList.add('active');
-      this.btnViewMobile.classList.remove('active');
+      if (this.viewportWrapper) this.viewportWrapper.className = 'app-viewport-wrapper mode-desktop';
+      if (this.btnViewDesktop) this.btnViewDesktop.classList.add('active');
+      if (this.btnViewMobile) this.btnViewMobile.classList.remove('active');
     } else {
-      this.viewportWrapper.className = 'app-viewport-wrapper mode-mobile';
-      this.btnViewMobile.classList.add('active');
-      this.btnViewDesktop.classList.remove('active');
+      if (this.viewportWrapper) this.viewportWrapper.className = 'app-viewport-wrapper mode-mobile';
+      if (this.btnViewMobile) this.btnViewMobile.classList.add('active');
+      if (this.btnViewDesktop) this.btnViewDesktop.classList.remove('active');
     }
   }
 
@@ -1328,32 +1478,19 @@ class AuraApp {
     const target = document.getElementById(targetPanelId);
     if (target) {
       target.classList.add('active');
-      document.getElementById('tabContentScroll').scrollTop = 0;
+      const scroller = document.getElementById('tabContentScroll');
+      if (scroller) scroller.scrollTop = 0;
     }
 
     this.navButtons.forEach(btn => btn.classList.remove('active'));
     if (activeBtn) activeBtn.classList.add('active');
   }
 
-  toggleHideValues() {
-    this.store.state.user.hideValues = !this.store.state.user.hideValues;
-    this.store.persist();
-
-    if (this.store.state.user.hideValues) {
-      this.eyeOpenIcon.classList.add('hidden');
-      this.eyeClosedIcon.classList.remove('hidden');
-    } else {
-      this.eyeOpenIcon.classList.remove('hidden');
-      this.eyeClosedIcon.classList.add('hidden');
-    }
-
-    this.renderAll();
-  }
-
   showToast(message) {
+    if (!this.toastContainer) return;
     const toast = document.createElement('div');
     toast.className = 'toast';
-    toast.innerHTML = `<span>✨</span> <span>${message}</span>`;
+    toast.innerHTML = `<span>✨</span> <span>${escapeHTML(message)}</span>`;
     this.toastContainer.appendChild(toast);
 
     setTimeout(() => {
@@ -1376,7 +1513,7 @@ class AuraApp {
   }
 }
 
-// Global initialization
+// Inicialização Global
 let app;
 document.addEventListener('DOMContentLoaded', () => {
   app = new AuraApp();
