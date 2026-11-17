@@ -282,6 +282,7 @@ class FinanceRepository extends ChangeNotifier {
       dailyImpact: dailyImpact,
       newSafeDaily: newSafe,
       rationale: rationale,
+      amount: amount,
     );
   }
 }

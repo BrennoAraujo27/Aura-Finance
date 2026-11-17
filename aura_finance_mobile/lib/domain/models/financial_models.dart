@@ -111,6 +111,7 @@ class PurchaseSimulationResult {
   final double dailyImpact;
   final double newSafeDaily;
   final String rationale;
+  final double amount;
 
   PurchaseSimulationResult({
     required this.verdict,
@@ -121,5 +122,6 @@ class PurchaseSimulationResult {
     required this.dailyImpact,
     required this.newSafeDaily,
     required this.rationale,
+    required this.amount,
   });
 }
