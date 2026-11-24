@@ -12,29 +12,43 @@ permissions:
 
 concurrency:
   group: "pages"
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
-  deploy:
-    name: Publicar App Web no GitHub Pages
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  build:
+    name: Preparar arquivos do site
     runs-on: ubuntu-latest
-
     steps:
       - name: Baixar repositório
         uses: actions/checkout@v4
 
+      - name: Copiar arquivos web para pasta de deploy
+        run: |
+          mkdir -p ./site_deploy
+          cp index.html ./site_deploy/
+          cp app.js ./site_deploy/
+          cp styles.css ./site_deploy/
+          # Copia o APK se existir
+          [ -f aura-wealth.apk ] && cp aura-wealth.apk ./site_deploy/ || true
+          ls -la ./site_deploy/
+
       - name: Configurar GitHub Pages
         uses: actions/configure-pages@v5
 
-      - name: Publicar arquivos do app web
+      - name: Upload do artifact para Pages
         uses: actions/upload-pages-artifact@v3
         with:
-          # Publica index.html, app.js e styles.css da raiz do repositório
-          path: '.'
+          path: './site_deploy'
 
+  deploy:
+    name: Publicar no GitHub Pages
+    needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
       - name: Fazer deploy no GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
