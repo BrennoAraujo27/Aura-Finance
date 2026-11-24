@@ -1,4 +1,4 @@
-/**
+﻿/**
  * AURA WEALTH - CORE APPLICATION LOGIC (ES6)
  * Sistema de Controle Financeiro & Cartões de Crédito Inteligente
  * 100% Integrado ao Supabase (PostgreSQL + RLS + Auth)
@@ -776,7 +776,7 @@ class AuraApp {
       html += `
         <div class="card-mini-row">
           <div>
-            <div class="card-mini-title">💳 ${escapeHTML(c.name)}</div>
+            <div class="card-mini-title">${escapeHTML(c.name)}</div>
             <div class="card-mini-sub">Limite: R$ ${this.formatCurrency(c.creditLimit)} • ${dueText}</div>
           </div>
           <div class="card-mini-invoice">
@@ -798,7 +798,7 @@ class AuraApp {
     if (txs.length === 0) {
       this.transactionListContainer.innerHTML = `
         <div class="wealth-empty-state">
-          <div class="empty-icon">🛒</div>
+          <div class="empty-icon"></div>
           <div class="empty-title">Nenhuma compra registrada ainda</div>
           <p class="empty-desc">Clique no botão "+ Registrar Compra" para lançar compras manuais nos seus cartões ou débito.</p>
         </div>
@@ -890,7 +890,7 @@ class AuraApp {
       let options = '';
       cards.forEach(c => {
         const avail = Math.max(0, (c.creditLimit || 5000) - (c.balance || 0));
-        options += `<option value="${escapeHTML(c.name)}" data-type="CREDIT_CARD" data-id="${c.id}">💳 ${escapeHTML(c.name)} (Disp: R$ ${this.formatCurrency(avail)})</option>`;
+        options += `<option value="${escapeHTML(c.name)}" data-type="CREDIT_CARD" data-id="${c.id}">${escapeHTML(c.name)} (Disp: R$ ${this.formatCurrency(avail)})</option>`;
       });
 
       accounts.forEach(a => {
@@ -1073,14 +1073,14 @@ class AuraApp {
     let recHighlight = '';
     let recReason = '';
     let verdictClass = 'verdict-green';
-    let verdictText = '🟢 Compra 100% Saudável';
+    let verdictText = 'Compra 100% Saudável';
 
     // Heurística de recomendação inteligente:
     // Se a compra for pequena (menor que 2 dias de gasto seguro ou < R$ 150): prefira 1x ou até 2x
     if (itemAmount <= 150 || (safeDaily > 0 && itemAmount <= safeDaily * 2)) {
       recommendedCount = 1;
       verdictClass = 'verdict-green';
-      verdictText = '🟢 Compra Saudável';
+      verdictText = 'Compra Saudável';
       recHighlight = `Pague em 1x à vista (R$ ${this.formatCurrency(itemAmount)})`;
       recReason = `O valor de R$ ${this.formatCurrency(itemAmount)} é baixo em relação à sua renda e cabe tranquilamente no saldo à vista. Se a loja oferecer desconto no PIX, aproveite!`;
     } else {
@@ -1100,17 +1100,17 @@ class AuraApp {
       const recPart = itemAmount / recommendedCount;
       if (itemAmount > limitAvailable) {
         verdictClass = 'verdict-red';
-        verdictText = '🔴 Risco de Estouro de Limite';
+        verdictText = 'Risco: Limite Excedido';
         recHighlight = `Atenção: Limite insuficiente no ${cardName}`;
         recReason = `Esta compra de R$ ${this.formatCurrency(itemAmount)} ultrapassa o limite disponível atual de R$ ${this.formatCurrency(limitAvailable)}. Reduza o valor ou utilize outro cartão.`;
       } else if (netIncome > 0 && itemAmount > (netIncome * 0.5)) {
         verdictClass = 'verdict-yellow';
-        verdictText = '🟡 Requer Atenção';
+        verdictText = 'Requer Atenção';
         recHighlight = `Parcele em até ${recommendedCount}x de R$ ${this.formatCurrency(recPart)}`;
         recReason = `Essa compra compromete parte expressiva da sua renda. Em ${recommendedCount}x sem juros, o impacto mensal será de apenas R$ ${this.formatCurrency(recPart)}/mês, preservando suas próximas faturas.`;
       } else {
         verdictClass = 'verdict-green';
-        verdictText = '🟢 Parcelamento Saudável';
+        verdictText = 'Parcelamento Saudável';
         recHighlight = `Parcele em até ${recommendedCount}x de R$ ${this.formatCurrency(recPart)}`;
         recReason = `Diluir em ${recommendedCount}x sem juros mantém seu gasto diário seguro no verde sem sufocar o vencimento do cartão dia ${targetCard?.dueDay || 15}.`;
       }
@@ -1237,7 +1237,7 @@ class AuraApp {
       html += `
         <div class="ob-card-item" data-index="${idx}">
           <div class="ob-card-item-header">
-            <span>💳 Cartão #${idx + 1}</span>
+            <span>Cartão #${idx + 1}</span>
             ${cards.length > 1 ? `<button type="button" class="btn-remove-card-item" onclick="app.removeCardItemRow(${idx})" title="Remover Cartão">&times;</button>` : ''}
           </div>
           <div class="input-group">
@@ -1361,7 +1361,7 @@ class AuraApp {
     this.store.persist();
     this.closeOnboardingModal();
     this.renderAll();
-    this.showToast('Configuração salva com sucesso! 🚀');
+    this.showToast('Configuração salva com sucesso!');
 
     // Sincronização com Supabase
     if (this.supabase && this.currentUser) {

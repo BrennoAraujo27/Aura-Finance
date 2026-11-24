@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
@@ -9,6 +9,22 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
+  <!-- Detecta WebView Android/iOS e ativa modo nativo (sem frame mockup) -->
+  <script>
+    (function() {
+      var ua = navigator.userAgent || '';
+      var isWebView =
+        /wv|WebView/i.test(ua) ||
+        (typeof Android !== 'undefined') ||
+        (/Android/i.test(ua) && !/Chrome\/[.0-9]* Mobile/i.test(ua)) ||
+        (window.webkit && window.webkit.messageHandlers) ||
+        window.matchMedia('(display-mode: standalone)').matches ||
+        window.innerWidth <= 480;
+      if (isWebView) {
+        document.documentElement.classList.add('is-webview');
+      }
+    })();
+  </script>
   <!-- Supabase JS Client SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -132,16 +148,6 @@
              ================================================================= -->
         <div class="app-main-view" id="appMainView">
           
-          <!-- Status Bar -->
-          <div class="mobile-status-bar">
-            <span class="status-time" id="statusClock">09:41</span>
-            <div class="status-icons">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4.35 19.4c-.39.39-.39 1.02 0 1.41.39.39 1.02.39 1.41 0l1.9-1.9C9.17 19.64 10.53 20 12 20c4.97 0 9-4.03 9-9s-4.03-9-9-9zm0 15c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"/></svg>
-              <span class="status-network">5G</span>
-              <div class="status-battery"><div class="battery-fill"></div></div>
-            </div>
-          </div>
-
           <!-- AURA WEALTH App Header (Consistent across all 5 screens) -->
           <div class="wealth-header">
             <div class="wealth-brand">
@@ -333,20 +339,20 @@
 
                   <button type="button" id="btnCalculatePurchase" class="wealth-btn-navy" style="margin-top: 6px;">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                    <span>🧠 Avaliar Saúde da Compra & Parcelas</span>
+                    <span>Analisar Compra</span>
                   </button>
                 </form>
 
                 <!-- Dynamic Verdict Result Container -->
                 <div class="purchase-result-card hidden" id="purchaseResultCard">
                   <div class="result-header">
-                    <span class="verdict-pill" id="verdictPill">🟢 Compra Saudável</span>
+                    <span class="verdict-pill" id="verdictPill">Compra Saudável</span>
                     <span class="result-timestamp">Análise Cognitiva FinAI</span>
                   </div>
 
                   <!-- Caixa de Recomendação de Parcelas -->
                   <div class="ai-recommendation-box" id="aiInstallmentRecommendation">
-                    <div class="ai-rec-title">💡 Recomendação de Parcelas:</div>
+                    <div class="ai-rec-title">Recomendação de Parcelas</div>
                     <div class="ai-rec-highlight" id="aiRecHighlightText">Parcele em até 3x de R$ 36,33</div>
                     <p class="ai-rec-reason" id="aiRecReasonText">Essa divisão não sufoca suas próximas faturas e preserva seu gasto diário seguro.</p>
                   </div>
@@ -376,7 +382,7 @@
 
                   <div class="rationale-box">
                     <div class="rationale-header">
-                      <strong>🧠 Parecer Comportamental do FinAI:</strong>
+                      <strong>Parecer FinAI</strong>
                     </div>
                     <p class="rationale-text" id="rationaleText"></p>
                   </div>
@@ -386,7 +392,7 @@
               <!-- Card 2: Detector de Microgastos -->
               <div class="wealth-white-card">
                 <div class="wealth-title-with-icon" style="margin-bottom: 14px;">
-                  <span style="font-size: 16px;">🚨</span>
+                  
                   <h3 class="wealth-section-title" style="margin: 0;">Detector de Microgastos</h3>
                 </div>
 
@@ -421,8 +427,7 @@
                 <div class="wealth-profile-divider"></div>
 
                 <div class="wealth-profile-confirmed">
-                  <span class="wealth-check-icon">✓</span>
-                  <span>AUTENTICADO NO SUPABASE</span>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span>AUTENTICADO</span>
                 </div>
               </div>
 
@@ -437,7 +442,7 @@
                     <div class="wealth-option-sub" style="color: #008751; font-weight: 600;">Toque para baixar o instalador no celular (51 MB)</div>
                   </div>
                 </div>
-                <span class="wealth-option-arrow" style="color: #008751; font-weight: 900; font-size: 18px;">⬇</span>
+                <span class="wealth-option-arrow" style="color: #008751; font-weight: 900; font-size: 18px;">↓</span>
               </a>
 
               <!-- Option Cards Below -->
@@ -521,9 +526,6 @@
             </button>
           </nav>
 
-          <!-- Home Indicator Bar (iOS Style) -->
-          <div class="home-indicator-bar"></div>
-
         </div> <!-- /app-main-view -->
 
       </div> <!-- /phone-screen -->
@@ -555,13 +557,13 @@
           <div class="input-group">
             <label for="txCategory">Categoria</label>
             <select id="txCategory">
-              <option value="needs_health">💊 Saúde & Medicamentos</option>
-              <option value="needs_supermarket">🛒 Alimentação & Mercado</option>
-              <option value="needs_housing">🏠 Moradia & Contas</option>
-              <option value="wants_delivery">🍕 Delivery & Lazer</option>
-              <option value="wants_shopping">🛍️ Compras & Vestuário</option>
-              <option value="transport">🚗 Transporte & Gasolina</option>
-              <option value="other">📦 Outros</option>
+              <option value="needs_health">Saúde & Medicamentos</option>
+              <option value="needs_supermarket">Alimentação & Mercado</option>
+              <option value="needs_housing">Moradia & Contas</option>
+              <option value="wants_delivery">Delivery & Lazer</option>
+              <option value="wants_shopping">Compras & Vestuário</option>
+              <option value="transport">Transporte & Gasolina</option>
+              <option value="other">Outros</option>
             </select>
           </div>
         </div>
@@ -609,7 +611,7 @@
 
         <div class="modal-footer">
           <button type="button" class="btn-secondary" id="btnCancelTx">Cancelar</button>
-          <button type="button" class="btn-primary" id="btnSaveTx">Registrar Compra 💳</button>
+          <button type="button" class="btn-primary" id="btnSaveTx">Registrar Compra</button>
         </div>
       </form>
     </div>
@@ -709,7 +711,7 @@
 
         <div class="modal-footer" style="margin-top: 24px;">
           <button type="button" class="btn-secondary" id="btnPrevStep3">← Voltar</button>
-          <button type="button" class="btn-primary" id="btnSaveOnboardingAll">Salvar e Concluir 🚀</button>
+          <button type="button" class="btn-primary" id="btnSaveOnboardingAll">Salvar e Concluir</button>
         </div>
       </div>
     </div>
@@ -787,7 +789,7 @@
 
         <div class="modal-footer">
           <button type="button" class="btn-secondary" id="btnCancelProfileEdit">Cancelar</button>
-          <button type="button" class="btn-primary" id="btnSaveProfileData">Salvar no Supabase 💾</button>
+          <button type="button" class="btn-primary" id="btnSaveProfileData">Salvar Dados</button>
         </div>
       </form>
     </div>
